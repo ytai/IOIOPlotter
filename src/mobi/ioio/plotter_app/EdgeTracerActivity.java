@@ -1,7 +1,5 @@
 package mobi.ioio.plotter_app;
 
-import ioio.examples.edgetracer.R;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -62,7 +60,6 @@ public class EdgeTracerActivity extends Activity implements OnClickListener {
 	private static final int GET_IMAGE_REQUEST_CODE = 100;
 
 	private static final String TAG = "EdgeTracerActivity";
-	private static final float MM_PER_SEC = 30;
 	private static final int MIN_CURVE_PIXELS = 8;
 
 	@Override
@@ -283,9 +280,7 @@ public class EdgeTracerActivity extends Activity implements OnClickListener {
 
 			// Generate trace file.
 			BinaryImage binImage = convert(edgesImage_);
-			// TODO(ytai): scale to page.
-			BinaryImageMultiCurve multiCurve = new BinaryImageMultiCurve(binImage, MM_PER_SEC,
-					new float[] { 350, 500 }, 0.25f, MIN_CURVE_PIXELS);
+			BinaryImageMultiCurve multiCurve = new BinaryImageMultiCurve(binImage, MIN_CURVE_PIXELS);
 			File traceFile = File.createTempFile("TRACE", ".trc", getCacheDir());
 			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(traceFile));
 			oos.writeObject(multiCurve);

@@ -15,19 +15,16 @@ public class Plotter {
 	public static interface MultiCurve {
 		public Curve nextCurve();
 	}
-	
+
 	enum State {
-		PEN_UP_DELAY,
-		TRANSITION_LINE,
-		PEN_DOWN_DELAY,
-		CURVE
+		PEN_UP_DELAY, TRANSITION_LINE, PEN_DOWN_DELAY, CURVE
 	}
 
 	private static final float STEP_MM = 0.022f;
 
 	private static final float TRANSITION_MM_PER_SEC = 50;
 
-	private static final float[] HOME = { 375, 375 };
+	private static final float[] HOME = { 375, 285 };
 
 	private static final float PEN_DELAY_SEC = 0.5f;
 
@@ -39,7 +36,7 @@ public class Plotter {
 	private Curve currentCurve_;
 	private State state_ = State.CURVE;
 	private MultiCurve multiCurve_;
-	
+
 	public void setMultiCurve(MultiCurve multiCurve) {
 		multiCurve_ = multiCurve;
 		state_ = State.CURVE;
@@ -72,13 +69,13 @@ public class Plotter {
 		}
 		return time;
 	}
-	
+
 	public int manualDelta(float[] delta, float time, ChannelCueSteps[] steps, ChannelCueBinary[] dirs) {
 		lr_[0] = Math.round(delta[0] / STEP_MM);
 		lr_[1] = Math.round(delta[1] / STEP_MM);
 		return controller_.goToDelta(lr_, Math.round(time * TICK_RATE), steps, dirs);
 	}
-	
+
 	public int manualPenUp(ChannelCueSteps[] steps, ChannelCueBinary[] dirs, ChannelCuePwmPosition servo) {
 		servo.pulseWidth = PEN_UP_PW;
 		return manualDelta(new float[2], PEN_DELAY_SEC, steps, dirs);
@@ -88,14 +85,14 @@ public class Plotter {
 		servo.pulseWidth = PEN_DOWN_PW;
 		return manualDelta(new float[2], PEN_DELAY_SEC, steps, dirs);
 	}
-	
+
 	public void setXy(float x, float y) {
 		xy_[0] = x;
 		xy_[1] = y;
 		transformer_.xyToLr(xy_, lr_);
 		controller_.setCurrentPos(lr_);
 	}
-	
+
 	private boolean nextCurve() {
 		final float[] currentPos = new float[2];
 		getPos(currentPos);
@@ -112,12 +109,12 @@ public class Plotter {
 			} else {
 				to = HOME;
 			}
-			
+
 			// Go!
 			curvePlotter_.setCurve(new Line(currentPos, to, TRANSITION_MM_PER_SEC));
 			state_ = State.TRANSITION_LINE;
 			break;
-			
+
 		case TRANSITION_LINE:
 			// Just finished the transition. Wait for the pen to get down.
 			if (currentCurve_ != null) {
@@ -128,13 +125,13 @@ public class Plotter {
 			}
 			state_ = State.PEN_DOWN_DELAY;
 			break;
-			
+
 		case PEN_DOWN_DELAY:
 			// Pen is down, we can start plotting!
 			curvePlotter_.setCurve(currentCurve_);
 			state_ = State.CURVE;
 			break;
-			
+
 		case CURVE:
 			// Just finished a curve, raise the pen.
 			currentCurve_ = multiCurve_ != null ? multiCurve_.nextCurve() : null;

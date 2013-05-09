@@ -13,16 +13,10 @@ import mobi.ioio.plotter.trace.BinaryImageTracer;
 public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 	private static final long serialVersionUID = -3015846915211337975L;
 	private final BinaryImageTracer tracer_;
-	private final float mmPerSec_;
-	private final float[] origin_;
-	private final float mmPerPixel_;
 	private final int minCurvePixels_;
 
-	public BinaryImageMultiCurve(BinaryImage image, float mmPerSec, float[] origin, float mmPerPixel, int minCurvePixels) {
+	public BinaryImageMultiCurve(BinaryImage image, int minCurvePixels) {
 		tracer_ = new BinaryImageTracer(image);
-		mmPerSec_ = mmPerSec;
-		origin_ = origin.clone();
-		mmPerPixel_ = mmPerPixel;
 		minCurvePixels_ = minCurvePixels;
 	}
 
@@ -43,13 +37,6 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 		return null;
 	}
 	
-	private void transform(float[] xy) {
-		xy[0] *= mmPerPixel_;
-		xy[0] += origin_[0];
-		xy[1] *= mmPerPixel_;
-		xy[1] += origin_[1];
-	}
-
 	private class TraceCurve implements Curve {
 		private final int[][] chain_;
 		private final float[] times_;
@@ -70,7 +57,7 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 				if (i < chain_.length - 1) {
 					final float distToNext = (float) Math.hypot(chain_[i + 1][0] - chain_[i][0], chain_[i + 1][1]
 							- chain_[i][1]);
-					time += distToNext / mmPerSec_;
+					time += distToNext;
 				}
 			}
 		}
@@ -96,7 +83,6 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 				xy[0] = (1 - ratio) * chain_[currentIndex_][0] + ratio * chain_[currentIndex_ + 1][0];
 				xy[1] = (1 - ratio) * chain_[currentIndex_][1] + ratio * chain_[currentIndex_ + 1][1];
 			}
-			transform(xy);
 		}
 	}
 }
