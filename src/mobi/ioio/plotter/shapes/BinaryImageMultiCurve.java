@@ -14,10 +14,12 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 	private static final long serialVersionUID = -3015846915211337975L;
 	private final BinaryImageTracer tracer_;
 	private final int minCurvePixels_;
+	private final float[] bounds_;
 
 	public BinaryImageMultiCurve(BinaryImage image, int minCurvePixels) {
 		tracer_ = new BinaryImageTracer(image);
 		minCurvePixels_ = minCurvePixels;
+		bounds_ = new float[] { 0, 0, image.width_, image.height_ };
 	}
 
 	@Override
@@ -84,5 +86,10 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 				xy[1] = (1 - ratio) * chain_[currentIndex_][1] + ratio * chain_[currentIndex_ + 1][1];
 			}
 		}
+	}
+
+	@Override
+	public float[] getBounds() {
+		return bounds_.clone();
 	}
 }

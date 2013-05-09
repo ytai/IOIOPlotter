@@ -8,12 +8,14 @@ import ioio.lib.api.Sequencer.ChannelCuePwmPosition;
 import ioio.lib.api.Sequencer.ChannelCueSteps;
 
 public class Plotter {
-	private static final int PEN_UP_PW = 2500;
-	private static final int PEN_DOWN_PW = 3500;
+	private static final int PEN_UP_PW = 2350;
+	private static final int PEN_DOWN_PW = 3650;
 	private static final float TICK_RATE = 62500;
 
 	public static interface MultiCurve {
 		public Curve nextCurve();
+
+		public float[] getBounds();
 	}
 
 	enum State {
@@ -30,7 +32,7 @@ public class Plotter {
 
 	private final CurvePlotter curvePlotter_;
 	private final StepperController controller_ = new StepperController(false, true);
-	private final CoordinateTransformer transformer_ = new CoordinateTransformer(758, STEP_MM);
+	private final CoordinateTransformer transformer_ = new CoordinateTransformer(754, STEP_MM);
 	private final int[] lr_ = new int[2];
 	private final float[] xy_ = new float[2];
 	private Curve currentCurve_;

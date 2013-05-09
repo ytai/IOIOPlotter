@@ -26,7 +26,7 @@ public class BinaryImageTracer implements Serializable {
 				segmentIndex_ = scanIndex_;
 				return true;
 			}
-			advanceScanIndex();
+			++scanIndex_;
 		}
 		return false;
 	}

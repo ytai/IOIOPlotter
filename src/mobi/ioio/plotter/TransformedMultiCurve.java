@@ -24,4 +24,12 @@ public class TransformedMultiCurve implements MultiCurve {
 		return new TransformedCurve(curve, offset_, scale_, timeScale_);
 	}
 
+	@Override
+	public float[] getBounds() {
+		float[] bounds = mutliCurve_.getBounds();
+		bounds[0] *= scale_;
+		bounds[1] *= scale_;
+		return bounds;
+	}
+
 }

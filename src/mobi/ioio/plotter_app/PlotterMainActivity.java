@@ -38,6 +38,8 @@ import com.zerokol.views.JoystickView.OnJoystickMoveListener;
 
 public class PlotterMainActivity extends IOIOActivity implements OnClickListener, OnJoystickMoveListener {
 	private static final float[] HOME = { 375, 285 };
+//	private float[] pageBoundsMm_ = { 150, 330, 604, 850 };
+	private float[] pageBoundsMm_ = { 420, 330, 604, 530 };
 
 	private static final int GET_PATH_REQUEST = 300;
 
@@ -148,7 +150,7 @@ public class PlotterMainActivity extends IOIOActivity implements OnClickListener
 			toast("IOIO Connected");
 			sequencer_ = ioio_.openSequencer(config_);
 			sequencer_.start();
-			servoCue_.pulseWidth = 2000;
+			servoCue_.pulseWidth = 2350;
 			setPosition(HOME);
 		}
 
@@ -243,7 +245,24 @@ public class PlotterMainActivity extends IOIOActivity implements OnClickListener
 		}
 
 		private MultiCurve transform(MultiCurve multiCurve) {
-			return new TransformedMultiCurve(multiCurve, new float[] { 120, 330 }, 0.25f, 1.f / MM_PER_SEC);
+			float[] plotBounds = multiCurve.getBounds();
+			final float plotWidth = plotBounds[2] - plotBounds[0];
+			final float plotHeight = plotBounds[3] - plotBounds[1];
+
+			final float pageWidth = pageBoundsMm_[2] - pageBoundsMm_[0];
+			final float pageHeight = pageBoundsMm_[3] - pageBoundsMm_[1];
+			
+			final float scale = Math.min(pageWidth / plotWidth, pageHeight / plotHeight);
+			
+			final float pageCenterX = pageBoundsMm_[0] + pageWidth / 2;
+			final float pageCenterY = pageBoundsMm_[1] + pageHeight / 2;
+
+			final float plotCenterX = plotBounds[0] + plotWidth / 2;
+			final float plotCenterY = plotBounds[1] + plotHeight / 2;
+
+			final float[] offset = { pageCenterX - plotCenterX * scale, pageCenterY - plotCenterY * scale };
+
+			return new TransformedMultiCurve(multiCurve, offset, scale, 1.f / MM_PER_SEC);
 		}
 	}
 
