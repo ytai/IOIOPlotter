@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">EdgeTracer</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="click_image">click_image</string>
+    <string name="title_activity_plotter_main">PlotterMain</string>
+
+</resources>
