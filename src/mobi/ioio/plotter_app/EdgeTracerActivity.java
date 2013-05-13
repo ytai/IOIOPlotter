@@ -26,6 +26,8 @@ import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
@@ -41,10 +43,12 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class EdgeTracerActivity extends Activity implements OnClickListener {
 	ImageView imageView_;
+	TextView selectImageTextView_;
 	SeekBar blurSeekBar_;
 	SeekBar highSeekBar_;
 	SeekBar lowSeekBar_;
@@ -77,6 +81,8 @@ public class EdgeTracerActivity extends Activity implements OnClickListener {
 		if (requestCode == GET_IMAGE_REQUEST_CODE) {
 			if (resultCode == RESULT_OK) {
 				loadImage(data.getData());
+				selectImageTextView_.setVisibility(View.GONE);
+				imageView_.setVisibility(View.VISIBLE);
 				doneButton_.setEnabled(true);
 			} else if (resultCode == RESULT_CANCELED) {
 				// User cancelled the image capture
@@ -142,6 +148,9 @@ public class EdgeTracerActivity extends Activity implements OnClickListener {
 
 		imageView_ = (ImageView) findViewById(R.id.image);
 		imageView_.setOnClickListener(EdgeTracerActivity.this);
+		
+		selectImageTextView_ = (TextView) findViewById(R.id.select_image);
+		selectImageTextView_.setOnClickListener(this);
 
 		blurSeekBar_ = (SeekBar) findViewById(R.id.blur);
 		blurSeekBar_.setOnSeekBarChangeListener(updateListener_);
@@ -247,12 +256,30 @@ public class EdgeTracerActivity extends Activity implements OnClickListener {
 	@Override
 	public void onClick(View view) {
 		if (view == imageView_) {
-			Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-			intent.setType("image/*");
-			startActivityForResult(intent, GET_IMAGE_REQUEST_CODE);
+			AlertDialog dialog = new AlertDialog.Builder(EdgeTracerActivity.this)
+			.setTitle("Confirm Action")
+			.setMessage("Are you sure you want to replace the image?")
+			.setPositiveButton("YES",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							selectImage();
+						}
+					})
+			.setNegativeButton("NO", null)
+			.create();
+			dialog.show();
+		} else if (view == selectImageTextView_) {
+			selectImage();
 		} else if (view == doneButton_) {
 			done();
 		}
+	}
+	
+	private void selectImage() {
+		Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+		intent.setType("image/*");
+		startActivityForResult(intent, GET_IMAGE_REQUEST_CODE);
 	}
 
 	private void done() {

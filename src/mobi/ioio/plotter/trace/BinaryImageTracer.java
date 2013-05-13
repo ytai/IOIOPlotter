@@ -9,8 +9,8 @@ public class BinaryImageTracer implements Serializable {
 	private int segmentIndex_ = 0;
 	private int scanIndex_ = 0;
 	private int dir_;
-	private final int tmpxy[] = new int[2];
-	private boolean zigzagDir_ = true;
+//	private final int tmpxy[] = new int[2];
+//	private boolean zigzagDir_ = true;
 	
 	private static final int[] TURNS = { 0, 1, -1, 2, -2, 3, -3 }; 
 
@@ -31,38 +31,38 @@ public class BinaryImageTracer implements Serializable {
 		return false;
 	}
 	
-	private void advanceScanIndex() {
-		image_.coordinates(scanIndex_, tmpxy);
-		int dir;
-		if (zigzagDir_) {
-			// Try to move up and to the right.
-			if (tmpxy[0] == image_.width_ - 1) {
-				// Reached the right edge. Go down.
-				dir = 6;
-				zigzagDir_ = false;
-			} else if (tmpxy[1] == 0) {
-				// Reached the top. Go right.
-				dir = 0;
-				zigzagDir_ = false;
-			} else {
-				dir = 1;
-			}
-		} else {
-			// Try to move down and to the left.
-			if (tmpxy[1] == image_.height_ - 1) {
-				// Reached the bottom. Go right.
-				dir = 0;
-				zigzagDir_ = true;
-			} else if (tmpxy[0] == 0) {
-				// Reached the left edge. Go down.
-				dir = 6;
-				zigzagDir_ = true;
-			} else {
-				dir = 5;
-			}
-		}
-		scanIndex_ = image_.move(scanIndex_, dir);
-	}
+//	private void advanceScanIndex() {
+//		image_.coordinates(scanIndex_, tmpxy);
+//		int dir;
+//		if (zigzagDir_) {
+//			// Try to move up and to the right.
+//			if (tmpxy[0] == image_.width_ - 1) {
+//				// Reached the right edge. Go down.
+//				dir = 6;
+//				zigzagDir_ = false;
+//			} else if (tmpxy[1] == 0) {
+//				// Reached the top. Go right.
+//				dir = 0;
+//				zigzagDir_ = false;
+//			} else {
+//				dir = 1;
+//			}
+//		} else {
+//			// Try to move down and to the left.
+//			if (tmpxy[1] == image_.height_ - 1) {
+//				// Reached the bottom. Go right.
+//				dir = 0;
+//				zigzagDir_ = true;
+//			} else if (tmpxy[0] == 0) {
+//				// Reached the left edge. Go down.
+//				dir = 6;
+//				zigzagDir_ = true;
+//			} else {
+//				dir = 5;
+//			}
+//		}
+//		scanIndex_ = image_.move(scanIndex_, dir);
+//	}
 
 	public boolean nextSegment(int[] xy) {
 		image_.coordinates(segmentIndex_, xy);

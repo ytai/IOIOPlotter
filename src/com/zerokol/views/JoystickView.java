@@ -29,6 +29,7 @@ public class JoystickView extends View implements Runnable {
 	private int centerY = 0; // Center view y position
 	private Paint mainCircle;
 	private Paint button;
+	private Paint buttonDisabled;
 	private Paint axisLine;
 	private int joystickRadius;
 	private int buttonRadius;
@@ -59,6 +60,10 @@ public class JoystickView extends View implements Runnable {
 		button = new Paint(Paint.ANTI_ALIAS_FLAG);
 		button.setColor(Color.GRAY);
 		button.setStyle(Paint.Style.FILL);
+
+		buttonDisabled = new Paint(Paint.ANTI_ALIAS_FLAG);
+		buttonDisabled.setColor(Color.LTGRAY);
+		buttonDisabled.setStyle(Paint.Style.FILL);
 	}
 
 	@Override
@@ -73,67 +78,58 @@ public class JoystickView extends View implements Runnable {
 
 		setMeasuredDimension(d, d);
 
-		// before measure, get the center of view
-		xPosition = (int) getWidth() / 2;
-		yPosition = (int) getWidth() / 2;
-
 		buttonRadius = (int) (d / 2 * 0.25);
 		joystickRadius = (int) (d / 2 * 0.75);
 	}
 
 	private static int measure(int measureSpec) {
-		int result = 0;
-
-		// Decode the measurement specifications.
-		int specMode = MeasureSpec.getMode(measureSpec);
-		int specSize = MeasureSpec.getSize(measureSpec);
-
-		if (specMode == MeasureSpec.UNSPECIFIED) {
+		if (MeasureSpec.getMode(measureSpec) == MeasureSpec.UNSPECIFIED) {
 			// Return a default size of 200 if no bounds are specified.
-			result = 200;
-		} else {
-			// As you want to fill the available space
-			// always return the full available bounds.
-			result = specSize;
+			return 200;
 		}
-		return result;
+		return MeasureSpec.getSize(measureSpec);
 	}
 
 	@Override
 	protected void onDraw(Canvas canvas) {
-		centerX = (getWidth()) / 2;
-		centerY = (getHeight()) / 2;
+		centerX = getWidth() / 2;
+		centerY = getHeight() / 2;
 
-		// painting the main circle
-		canvas.drawCircle((int) centerX, (int) centerY, joystickRadius + buttonRadius, mainCircle);
-		canvas.drawLine((float) (centerX - joystickRadius), (float) centerY, (float) (centerX + joystickRadius),
-				(float) centerY, axisLine);
-		canvas.drawLine((float) centerX, (float) (centerY - joystickRadius), (float) centerX,
-				(float) (centerY + joystickRadius), axisLine);
+		// Main circle
+		canvas.drawCircle((int) centerX, (int) centerY, Math.min(getWidth(), getHeight()) / 2, mainCircle);
 
-		// painting the move button
-		canvas.drawCircle(xPosition, yPosition, buttonRadius, button);
+		// Cross
+		canvas.drawLine(0, getHeight() / 2, getWidth(), getHeight() / 2, axisLine);
+		canvas.drawLine(getWidth() / 2, 0, getWidth() / 2, getHeight(), axisLine);
+
+		// Move button
+		canvas.drawCircle(centerX + xPosition, centerY + yPosition, buttonRadius, isEnabled() ? button : buttonDisabled);
 	}
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		xPosition = (int) event.getX();
-		yPosition = (int) event.getY();
-		double abs = Math.sqrt((xPosition - centerX) * (xPosition - centerX) + (yPosition - centerY)
-				* (yPosition - centerY));
-		if (abs > joystickRadius) {
-			xPosition = (int) ((xPosition - centerX) * joystickRadius / abs + centerX);
-			yPosition = (int) ((yPosition - centerY) * joystickRadius / abs + centerY);
+		if (!isEnabled()) {
+			return true;
 		}
-		invalidate();
 		if (event.getAction() == MotionEvent.ACTION_UP) {
-			xPosition = (int) centerX;
-			yPosition = (int) centerY;
+			xPosition = 0;
+			yPosition = 0;
 			thread.interrupt();
 			if (onJoystickMoveListener != null) {
 				onJoystickMoveListener.onValueChanged(posX(), posY());
 			}
+		} else {
+			float x = event.getX() - centerX;
+			float y = event.getY() - centerY;
+			float len = (float) Math.hypot(x, y) / joystickRadius;
+			if (len > 1) {
+				x /= len;
+				y /= len;
+			}
+			xPosition = (int) x;
+			yPosition = (int) y;
 		}
+		invalidate();
 		if (onJoystickMoveListener != null && event.getAction() == MotionEvent.ACTION_DOWN) {
 			if (thread != null && thread.isAlive()) {
 				thread.interrupt();
@@ -146,11 +142,11 @@ public class JoystickView extends View implements Runnable {
 	}
 
 	private float posX() {
-		return (float) (xPosition - centerX) / joystickRadius;
+		return (float) xPosition / joystickRadius;
 	}
 
 	private float posY() {
-		return (float) (yPosition - centerY) / joystickRadius;
+		return (float) yPosition / joystickRadius;
 	}
 
 	public void setOnJoystickMoveListener(OnJoystickMoveListener listener, long repeatInterval) {

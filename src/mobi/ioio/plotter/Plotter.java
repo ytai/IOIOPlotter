@@ -8,8 +8,8 @@ import ioio.lib.api.Sequencer.ChannelCuePwmPosition;
 import ioio.lib.api.Sequencer.ChannelCueSteps;
 
 public class Plotter {
-	private static final int PEN_UP_PW = 2350;
-	private static final int PEN_DOWN_PW = 3650;
+	private static final int PEN_UP_PW = 2250;
+	private static final int PEN_DOWN_PW = 3850;
 	private static final float TICK_RATE = 62500;
 
 	public static interface MultiCurve {

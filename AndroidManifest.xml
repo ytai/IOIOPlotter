@@ -9,6 +9,7 @@
         android:targetSdkVersion="17" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.BROADCAST_STICKY"/>
 
     <application
         android:allowBackup="true"
@@ -16,12 +17,12 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name="mobi.ioio.plotter_app.EdgeTracerActivity"
+            android:name="EdgeTracerActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:label="@string/app_name" >
         </activity>
         <activity
-            android:name="mobi.ioio.plotter_app.PlotterMainActivity"
+            android:name="PlotterMainActivity"
             android:label="@string/title_activity_plotter_main" android:configChanges="orientation|screenLayout|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,6 +30,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service android:name="PlotterService"></service>
     </application>
 
 </manifest>

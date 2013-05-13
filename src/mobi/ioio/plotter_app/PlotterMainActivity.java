@@ -1,60 +1,125 @@
 package mobi.ioio.plotter_app;
 
-import ioio.lib.api.DigitalOutput;
-import ioio.lib.api.Sequencer;
-import ioio.lib.api.Sequencer.ChannelConfig;
-import ioio.lib.api.Sequencer.ChannelConfigBinary;
-import ioio.lib.api.Sequencer.ChannelConfigPwmPosition;
-import ioio.lib.api.Sequencer.ChannelConfigSteps;
-import ioio.lib.api.Sequencer.ChannelCue;
-import ioio.lib.api.Sequencer.ChannelCueBinary;
-import ioio.lib.api.Sequencer.ChannelCuePwmPosition;
-import ioio.lib.api.Sequencer.ChannelCueSteps;
-import ioio.lib.api.Sequencer.Clock;
-import ioio.lib.api.exception.ConnectionLostException;
-import ioio.lib.util.BaseIOIOLooper;
-import ioio.lib.util.IOIOLooper;
-import ioio.lib.util.android.IOIOActivity;
-
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 
-import mobi.ioio.plotter.Plotter;
 import mobi.ioio.plotter.Plotter.MultiCurve;
 import mobi.ioio.plotter.TransformedMultiCurve;
+import mobi.ioio.plotter_app.PlotterService.IOIOBinder;
+import mobi.ioio.plotter_app.PlotterService.Looper;
+import mobi.ioio.plotter_app.PlotterService.State;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.MutableContextWrapper;
+import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.RadioGroup;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.zerokol.views.JoystickView;
 import com.zerokol.views.JoystickView.OnJoystickMoveListener;
 
-public class PlotterMainActivity extends IOIOActivity implements OnClickListener, OnJoystickMoveListener {
-	private static final float[] HOME = { 375, 285 };
-//	private float[] pageBoundsMm_ = { 150, 330, 604, 850 };
-	private float[] pageBoundsMm_ = { 420, 330, 604, 530 };
+public class PlotterMainActivity extends Activity implements OnClickListener, OnJoystickMoveListener, ServiceConnection {
+	private static final float MM_PER_SEC = 30;
+	private static final float[] FULL_PAGE_BOUNDS = { 150, 330, 604, 850 };
+	private static final float[] TOP_HALF_BOUNDS = { 150, 330, 604, 590 };
+	private static final float[] BOTTOM_HALF_BOUNDS = { 150, 590, 604, 850 };
+	private float[] pageBoundsMm_ = FULL_PAGE_BOUNDS;
 
 	private static final int GET_PATH_REQUEST = 300;
 
+	private BroadcastReceiver receiver_ = new BroadcastReceiver() {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			PlotterMainActivity.this.onReceive(intent);
+		}
+	};
+
+	private PlotterService.State serviceState_ = State.DISCONNECTED;
+
+	private TextView selectPathView_;
 	private ImageView pathImageView_;
 	private ToggleButton plotButton_;
 	private Button homeButton_;
+	private Button exitButton_;
+	private Button stopButton_;
 	private Looper looper_;
 	private JoystickView joystick_;
+	private Uri multiCurveUri_;
+	private Uri thumbnailUri_;
 
-	private Uri mutiCurveUri_;
+	private boolean bound_ = false;
+
+	@Override
+	protected void onStart() {
+		super.onStart();
+		Intent intent = new Intent(this, PlotterService.class);
+		startService(intent);
+		bindService(intent, this, BIND_AUTO_CREATE);
+		IntentFilter filter = new IntentFilter(PlotterService.ACTION_STATE_CHANGE);
+		onReceive(registerReceiver(receiver_, filter));
+	}
+
+	protected void onReceive(Intent intent) {
+		if (intent != null) {
+			serviceState_ = PlotterService.State.values()[intent.getIntExtra(PlotterService.EXTRA_STATE, 0)];
+		} else {
+			serviceState_ = PlotterService.State.DISCONNECTED;
+		}
+		updateGui();
+	}
+
+	@Override
+	protected void onStop() {
+		if (bound_) {
+			unbindService(this);
+		}
+		unregisterReceiver(receiver_);
+		super.onStop();
+	}
+
+	@Override
+	public void onServiceConnected(ComponentName name, IBinder binder) {
+		looper_ = ((IOIOBinder) binder).getLooper();
+		bound_ = true;
+		Uri[] extra = (Uri[]) looper_.getExtra();
+		if (extra != null && multiCurveUri_ == null) {
+			multiCurveUri_ = extra[0];
+			thumbnailUri_ = extra[1];
+		}
+		updateGui();
+	}
+
+	@Override
+	public void onServiceDisconnected(ComponentName name) {
+		looper_ = null;
+		updateGui();
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_plotter_main);
+
+		selectPathView_ = (TextView) findViewById(R.id.select_path);
+		selectPathView_.setOnClickListener(this);
 
 		pathImageView_ = (ImageView) findViewById(R.id.path);
 		pathImageView_.setOnClickListener(this);
@@ -65,27 +130,119 @@ public class PlotterMainActivity extends IOIOActivity implements OnClickListener
 		homeButton_ = (Button) findViewById(R.id.home_button);
 		homeButton_.setOnClickListener(this);
 
+		exitButton_ = (Button) findViewById(R.id.exit_button);
+		exitButton_.setOnClickListener(this);
+
+		stopButton_ = (Button) findViewById(R.id.stop_button);
+		stopButton_.setOnClickListener(this);
+
 		joystick_ = (JoystickView) findViewById(R.id.joystick);
 		joystick_.setOnJoystickMoveListener(this, 20);
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.plotter_main, menu);
 		return true;
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+	    switch (item.getItemId()) {
+	        case R.id.page_size:
+	        	setPageSize();
+	            return true;
+	        default:
+	            return super.onOptionsItemSelected(item);
+	    }
+	}
+	
+	private void setPageSize() {
+		Builder builder = new AlertDialog.Builder(this);
+		View view = getLayoutInflater().inflate(R.layout.dialog_page_size, null);
+		final RadioGroup group = (RadioGroup) view.findViewById(R.id.select_size);
+		final EditText[] bounds = new EditText[] { 
+				(EditText) view.findViewById(R.id.xmin),
+				(EditText) view.findViewById(R.id.ymin),
+				(EditText) view.findViewById(R.id.xmax),
+				(EditText) view.findViewById(R.id.ymax)
+		};
+		
+		DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				switch (group.getCheckedRadioButtonId()) {
+				case R.id.full_page:
+					pageBoundsMm_ = FULL_PAGE_BOUNDS;
+					break;
+					
+				case R.id.top_half:
+					pageBoundsMm_ = TOP_HALF_BOUNDS;
+					break;
+					
+				case R.id.bottom_half:
+					pageBoundsMm_ = BOTTOM_HALF_BOUNDS;
+					break;
+					
+				case R.id.custom_size:
+					pageBoundsMm_ = new float[4];
+					for (int i = 0; i < 4; ++i) {
+						pageBoundsMm_[i] = Float.valueOf(bounds[i].getText().toString());
+					}
+					break;
+				}
+			}
+		};
+		
+		group.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				final boolean enable = checkedId == R.id.custom_size;
+				for (EditText bound : bounds) {
+					bound.setEnabled(enable);
+				}
+			}
+		});
+				
+		builder.setTitle("Page Size")
+			.setView(view)
+			.setPositiveButton("OK", listener)
+			.setNegativeButton("Cancel", null).create().show();
 	}
 
 	@Override
 	public void onClick(View v) {
-		if (v == pathImageView_) {
+		if (v == pathImageView_ || v == selectPathView_) {
 			Intent intent = new Intent();
 			intent.setClass(this, EdgeTracerActivity.class);
 			startActivityForResult(intent, GET_PATH_REQUEST);
 		} else if (v == plotButton_) {
-			looper_.setTargetState(plotButton_.isChecked() ? State.PLOTTING : State.STOPPED);
+			try {
+				if (plotButton_.isChecked() && serviceState_ == State.STOPPED) {
+					InputStream inputStream = getContentResolver().openInputStream(multiCurveUri_);
+					ObjectInputStream ois = new ObjectInputStream(inputStream);
+					MultiCurve multiCurve = (MultiCurve) ois.readObject();
+					looper_.setPath(transform(multiCurve), new Uri[] { multiCurveUri_, thumbnailUri_ });
+				}
+				looper_.setTargetState(plotButton_.isChecked() ? State.PLOTTING : State.PAUSED);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (v == stopButton_) {
+			looper_.setTargetState(State.STOPPED);
 		} else if (v == homeButton_) {
-			looper_.setPosition(HOME);
+			looper_.home();
+		} else if (v == exitButton_) {
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setMessage("Are you sure?").setTitle("Confirm Exit");
+			builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					exit();
+				}
+			});
+			builder.setNegativeButton("No", null);
+			builder.create().show();
 		}
 	}
 
@@ -94,9 +251,9 @@ public class PlotterMainActivity extends IOIOActivity implements OnClickListener
 		if (requestCode == GET_PATH_REQUEST) {
 			if (resultCode == RESULT_OK) {
 				try {
-					mutiCurveUri_ = data.getData();
-					pathImageView_.setImageURI((Uri) data.getParcelableExtra("thumbnail"));
-					plotButton_.setEnabled(true);
+					multiCurveUri_ = data.getData();
+					thumbnailUri_ = (Uri) data.getParcelableExtra("thumbnail");
+					updateGui();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -104,172 +261,31 @@ public class PlotterMainActivity extends IOIOActivity implements OnClickListener
 		}
 	}
 
-	enum State {
-		STOPPED, PLOTTING
+	private void updateGui() {
+		final boolean hasPath = multiCurveUri_ != null;
+
+		plotButton_.setEnabled(bound_ && hasPath && serviceState_ != PlotterService.State.DISCONNECTED);
+		plotButton_.setChecked(bound_ && hasPath && serviceState_ == PlotterService.State.PLOTTING);
+
+		homeButton_.setEnabled(bound_ && serviceState_ == PlotterService.State.STOPPED);
+		exitButton_.setEnabled(bound_);
+		stopButton_.setEnabled(bound_ && hasPath && serviceState_ != PlotterService.State.DISCONNECTED);
+		joystick_.setEnabled(bound_ && serviceState_ == PlotterService.State.STOPPED);
+
+		pathImageView_.setVisibility(hasPath ? View.VISIBLE : View.GONE);
+		pathImageView_.setImageURI(thumbnailUri_);
+		selectPathView_.setVisibility(hasPath ? View.GONE : View.VISIBLE);
+
+		pathImageView_.setEnabled(!bound_ || serviceState_ == PlotterService.State.DISCONNECTED
+				|| serviceState_ == State.STOPPED);
+		selectPathView_.setEnabled(!bound_ || serviceState_ == PlotterService.State.DISCONNECTED
+				|| serviceState_ == State.STOPPED);
 	}
 
-	private class Looper extends BaseIOIOLooper {
-		private static final float MANUAL_SEC_PER_TICK = 10e-3f;
-		private static final float MANUAL_MM_PER_SEC = 50.f;
-		private static final float MM_PER_SEC = 30;
-
-		private final ChannelConfigSteps stepper1StepConfig_ = new ChannelConfigSteps(new DigitalOutput.Spec(10));
-		private final ChannelConfigBinary stepper1DirConfig_ = new ChannelConfigBinary(false, false,
-				new DigitalOutput.Spec(11));
-		private final ChannelConfigSteps stepper2StepConfig_ = new ChannelConfigSteps(new DigitalOutput.Spec(12));
-		private final ChannelConfigBinary stepper2DirConfig_ = new ChannelConfigBinary(false, false,
-				new DigitalOutput.Spec(13));
-		private final ChannelConfigPwmPosition servoConfig_ = new ChannelConfigPwmPosition(Clock.CLK_2M, 40000, 2000,
-				new DigitalOutput.Spec(46));
-
-		private final ChannelConfig[] config_ = new ChannelConfig[] { stepper1StepConfig_, stepper1DirConfig_,
-				stepper2StepConfig_, stepper2DirConfig_, servoConfig_ };
-
-		private ChannelCueSteps stepper1StepCue_ = new ChannelCueSteps();
-		private ChannelCueBinary stepper1DirCue_ = new ChannelCueBinary();
-		private ChannelCueSteps stepper2StepCue_ = new ChannelCueSteps();
-		private ChannelCueBinary stepper2DirCue_ = new ChannelCueBinary();
-		private ChannelCuePwmPosition servoCue_ = new ChannelCuePwmPosition();
-
-		private ChannelCueSteps[] stepperStepCues_ = new ChannelCueSteps[] { stepper1StepCue_, stepper2StepCue_ };
-		private ChannelCueBinary[] stepperDirCues_ = new ChannelCueBinary[] { stepper1DirCue_, stepper2DirCue_ };
-
-		private final ChannelCue[] cue_ = new ChannelCue[] { stepper1StepCue_, stepper1DirCue_, stepper2StepCue_,
-				stepper2DirCue_, servoCue_ };
-
-		private Plotter plotter_ = new Plotter(1e-3f);
-
-		private Sequencer sequencer_;
-
-		State currentState_ = State.STOPPED;
-		State targetState_ = State.STOPPED;
-		private float[] manualSpeed_ = new float[] { 0, 0 };
-
-		@Override
-		protected void setup() throws ConnectionLostException, InterruptedException {
-			toast("IOIO Connected");
-			sequencer_ = ioio_.openSequencer(config_);
-			sequencer_.start();
-			servoCue_.pulseWidth = 2350;
-			setPosition(HOME);
-		}
-
-		public synchronized void setPosition(float[] pos) {
-			plotter_.setXy(pos[0], pos[1]);
-		}
-
-		public void setTargetState(State state) {
-			targetState_ = state;
-		}
-
-		@Override
-		public void loop() throws ConnectionLostException, InterruptedException {
-			switch (currentState_) {
-			case STOPPED:
-				switch (targetState_) {
-				case STOPPED:
-					manualMode();
-					break;
-
-				case PLOTTING:
-					startPlot();
-					break;
-				}
-				break;
-
-			case PLOTTING:
-				switch (targetState_) {
-				case STOPPED:
-					stopPlot();
-					break;
-
-				case PLOTTING:
-					keepPlotting();
-					break;
-				}
-				break;
-			}
-			Thread.sleep(5);
-		}
-
-		private void startPlot() throws ConnectionLostException {
-			InputStream inputStream;
-			try {
-				inputStream = getContentResolver().openInputStream(mutiCurveUri_);
-				ObjectInputStream ois = new ObjectInputStream(inputStream);
-				MultiCurve multiCurve = (MultiCurve) ois.readObject();
-				plotter_.setMultiCurve(transform(multiCurve));
-				currentState_ = State.PLOTTING;
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		private void stopPlot() throws ConnectionLostException {
-			sequencer_.stop();
-			currentState_ = State.STOPPED;
-			sequencer_.start();
-		}
-
-		private void keepPlotting() throws ConnectionLostException, InterruptedException {
-			while (sequencer_.available() > 0) {
-				int time = plotter_.nextSegment(stepperStepCues_, stepperDirCues_, servoCue_);
-				sequencer_.push(cue_, time);
-			}
-		}
-
-		private void manualMode() throws ConnectionLostException, InterruptedException {
-			if (sequencer_.available() >= 31) {
-				int time = plotter_.manualDelta(manualSpeed_, MANUAL_SEC_PER_TICK, stepperStepCues_, stepperDirCues_);
-				sequencer_.push(cue_, time);
-			}
-		}
-
-		@Override
-		public void disconnected() {
-			toast("IOIO Disconnected");
-		}
-
-		private void toast(final String msg) {
-			runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					Toast.makeText(PlotterMainActivity.this, msg, Toast.LENGTH_LONG).show();
-				}
-			});
-		}
-
-		public void setManualSpeed(float x, float y) {
-			manualSpeed_ = new float[] { x * MANUAL_MM_PER_SEC * MANUAL_SEC_PER_TICK,
-					y * MANUAL_MM_PER_SEC * MANUAL_SEC_PER_TICK };
-		}
-
-		private MultiCurve transform(MultiCurve multiCurve) {
-			float[] plotBounds = multiCurve.getBounds();
-			final float plotWidth = plotBounds[2] - plotBounds[0];
-			final float plotHeight = plotBounds[3] - plotBounds[1];
-
-			final float pageWidth = pageBoundsMm_[2] - pageBoundsMm_[0];
-			final float pageHeight = pageBoundsMm_[3] - pageBoundsMm_[1];
-			
-			final float scale = Math.min(pageWidth / plotWidth, pageHeight / plotHeight);
-			
-			final float pageCenterX = pageBoundsMm_[0] + pageWidth / 2;
-			final float pageCenterY = pageBoundsMm_[1] + pageHeight / 2;
-
-			final float plotCenterX = plotBounds[0] + plotWidth / 2;
-			final float plotCenterY = plotBounds[1] + plotHeight / 2;
-
-			final float[] offset = { pageCenterX - plotCenterX * scale, pageCenterY - plotCenterY * scale };
-
-			return new TransformedMultiCurve(multiCurve, offset, scale, 1.f / MM_PER_SEC);
-		}
-	}
-
-	@Override
-	public IOIOLooper createIOIOLooper(String connectionType, Object extra) {
-		looper_ = new Looper();
-		return looper_;
+	private void exit() {
+		Intent intent = new Intent(this, PlotterService.class);
+		stopService(intent);
+		finish();
 	}
 
 	static final float C = (float) Math.cos(Math.PI / 4);
@@ -281,4 +297,24 @@ public class PlotterMainActivity extends IOIOActivity implements OnClickListener
 		looper_.setManualSpeed(l, r);
 	}
 
+	private MultiCurve transform(MultiCurve multiCurve) {
+		float[] plotBounds = multiCurve.getBounds();
+		final float plotWidth = plotBounds[2] - plotBounds[0];
+		final float plotHeight = plotBounds[3] - plotBounds[1];
+
+		final float pageWidth = pageBoundsMm_[2] - pageBoundsMm_[0];
+		final float pageHeight = pageBoundsMm_[3] - pageBoundsMm_[1];
+
+		final float scale = Math.min(pageWidth / plotWidth, pageHeight / plotHeight);
+
+		final float pageCenterX = pageBoundsMm_[0] + pageWidth / 2;
+		final float pageCenterY = pageBoundsMm_[1] + pageHeight / 2;
+
+		final float plotCenterX = plotBounds[0] + plotWidth / 2;
+		final float plotCenterY = plotBounds[1] + plotHeight / 2;
+
+		final float[] offset = { pageCenterX - plotCenterX * scale, pageCenterY - plotCenterY * scale };
+
+		return new TransformedMultiCurve(multiCurve, offset, scale, 1.f / MM_PER_SEC);
+	}
 }
