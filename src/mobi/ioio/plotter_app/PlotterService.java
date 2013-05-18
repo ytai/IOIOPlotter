@@ -21,7 +21,9 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
+import android.widget.Toast;
 
 public class PlotterService extends IOIOService {
 	public enum State {
@@ -35,6 +37,8 @@ public class PlotterService extends IOIOService {
 
 	private Looper looper_;
 	public IBinder binder_ = new IOIOBinder();
+
+	private Handler handler_;
 	
 	public class IOIOBinder extends Binder {
 		public Looper getLooper() {
@@ -55,6 +59,7 @@ public class PlotterService extends IOIOService {
 		        System.currentTimeMillis());
 		Intent notificationIntent = new Intent(this, PlotterMainActivity.class);
 		PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+		handler_ = new Handler(android.os.Looper.getMainLooper());
 		notification.setLatestEventInfo(this, "IOIO Plotter", "Disconnected.", pendingIntent);
 		startForeground(PLOTTER_NOTIFICATION, notification);
 	}
@@ -231,7 +236,14 @@ public class PlotterService extends IOIOService {
 		private void fillBuffer() throws ConnectionLostException, InterruptedException {
 			while (sequencer_.available() > 0) {
 				int time = plotter_.nextSegment(stepperStepCues_, stepperDirCues_, servoCue_);
-				sequencer_.push(cue_, time);
+				if (time > 0) {
+					sequencer_.push(cue_, time);
+				} else {
+					setTargetState(State.STOPPED);
+					setCurrentState(State.STOPPED);
+					toast("Done");
+					return;
+				}
 			}
 		}
 	
@@ -249,12 +261,12 @@ public class PlotterService extends IOIOService {
 		}
 	
 		private void toast(final String msg) {
-//			runOnUiThread(new Runnable() {
-//				@Override
-//				public void run() {
-//					Toast.makeText(PlotterService.this, msg, Toast.LENGTH_LONG).show();
-//				}
-//			});
+			handler_.post(new Runnable() {
+				@Override
+				public void run() {
+					Toast.makeText(PlotterService.this, msg, Toast.LENGTH_LONG).show();
+				}
+			});
 		}
 	
 		public void setManualSpeed(float x, float y) {
