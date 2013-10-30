@@ -35,7 +35,8 @@ import android.widget.ToggleButton;
 import com.zerokol.views.JoystickView;
 import com.zerokol.views.JoystickView.OnJoystickMoveListener;
 
-public class PlotterMainActivity extends Activity implements OnClickListener, OnJoystickMoveListener, ServiceConnection {
+public class PlotterMainActivity extends Activity implements OnClickListener,
+		OnJoystickMoveListener, ServiceConnection {
 	private static final float MM_PER_SEC = 30;
 	private static final float[] FULL_PAGE_BOUNDS = { 150, 330, 604, 850 };
 	private static final float[] TOP_HALF_BOUNDS = { 150, 330, 604, 590 };
@@ -78,7 +79,8 @@ public class PlotterMainActivity extends Activity implements OnClickListener, On
 
 	protected void onReceive(Intent intent) {
 		if (intent != null) {
-			serviceState_ = PlotterService.State.values()[intent.getIntExtra(PlotterService.EXTRA_STATE, 0)];
+			serviceState_ = PlotterService.State.values()[intent.getIntExtra(
+					PlotterService.EXTRA_STATE, 0)];
 		} else {
 			serviceState_ = PlotterService.State.DISCONNECTED;
 		}
@@ -144,29 +146,26 @@ public class PlotterMainActivity extends Activity implements OnClickListener, On
 		getMenuInflater().inflate(R.menu.plotter_main, menu);
 		return true;
 	}
-	
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-	    switch (item.getItemId()) {
-	        case R.id.page_size:
-	        	setPageSize();
-	            return true;
-	        default:
-	            return super.onOptionsItemSelected(item);
-	    }
+		switch (item.getItemId()) {
+		case R.id.page_size:
+			setPageSize();
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
 	}
-	
+
 	private void setPageSize() {
 		Builder builder = new AlertDialog.Builder(this);
 		View view = getLayoutInflater().inflate(R.layout.dialog_page_size, null);
 		final RadioGroup group = (RadioGroup) view.findViewById(R.id.select_size);
-		final EditText[] bounds = new EditText[] { 
-				(EditText) view.findViewById(R.id.xmin),
-				(EditText) view.findViewById(R.id.ymin),
-				(EditText) view.findViewById(R.id.xmax),
-				(EditText) view.findViewById(R.id.ymax)
-		};
-		
+		final EditText[] bounds = new EditText[] { (EditText) view.findViewById(R.id.xmin),
+				(EditText) view.findViewById(R.id.ymin), (EditText) view.findViewById(R.id.xmax),
+				(EditText) view.findViewById(R.id.ymax) };
+
 		DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -174,15 +173,15 @@ public class PlotterMainActivity extends Activity implements OnClickListener, On
 				case R.id.full_page:
 					pageBoundsMm_ = FULL_PAGE_BOUNDS;
 					break;
-					
+
 				case R.id.top_half:
 					pageBoundsMm_ = TOP_HALF_BOUNDS;
 					break;
-					
+
 				case R.id.bottom_half:
 					pageBoundsMm_ = BOTTOM_HALF_BOUNDS;
 					break;
-					
+
 				case R.id.custom_size:
 					pageBoundsMm_ = new float[4];
 					for (int i = 0; i < 4; ++i) {
@@ -192,7 +191,7 @@ public class PlotterMainActivity extends Activity implements OnClickListener, On
 				}
 			}
 		};
-		
+
 		group.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
 			@Override
 			public void onCheckedChanged(RadioGroup group, int checkedId) {
@@ -202,26 +201,43 @@ public class PlotterMainActivity extends Activity implements OnClickListener, On
 				}
 			}
 		});
-				
-		builder.setTitle("Page Size")
-			.setView(view)
-			.setPositiveButton("OK", listener)
-			.setNegativeButton("Cancel", null).create().show();
+
+		builder.setTitle("Page Size").setView(view).setPositiveButton("OK", listener)
+				.setNegativeButton("Cancel", null).create().show();
 	}
 
 	@Override
 	public void onClick(View v) {
 		if (v == pathImageView_ || v == selectPathView_) {
-			Intent intent = new Intent();
-			intent.setClass(this, EdgeTracerActivity.class);
-			startActivityForResult(intent, GET_PATH_REQUEST);
+			final Intent edgeTracerIntent = new Intent();
+			edgeTracerIntent.setClass(this, EdgeTracerActivity.class);
+			final Intent scribblerIntent = new Intent();
+			scribblerIntent.setClass(this, ScribblerActivity.class);
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle("Select path type").setItems(
+					new CharSequence[] { "Edge Tracer", "Scribbler" },
+					new AlertDialog.OnClickListener() {
+
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							switch (which) {
+							case 0:
+								startActivityForResult(edgeTracerIntent, GET_PATH_REQUEST);
+								break;
+							case 1:
+								startActivityForResult(scribblerIntent, GET_PATH_REQUEST);
+								break;
+							}
+						}
+					}).create().show();
 		} else if (v == plotButton_) {
 			try {
 				if (plotButton_.isChecked() && serviceState_ == State.STOPPED) {
 					InputStream inputStream = getContentResolver().openInputStream(multiCurveUri_);
 					ObjectInputStream ois = new ObjectInputStream(inputStream);
 					MultiCurve multiCurve = (MultiCurve) ois.readObject();
-					looper_.setPath(transform(multiCurve), new Uri[] { multiCurveUri_, thumbnailUri_ });
+					looper_.setPath(transform(multiCurve), new Uri[] { multiCurveUri_,
+							thumbnailUri_ });
 				}
 				looper_.setTargetState(plotButton_.isChecked() ? State.PLOTTING : State.PAUSED);
 			} catch (Exception e) {
@@ -263,12 +279,14 @@ public class PlotterMainActivity extends Activity implements OnClickListener, On
 	private void updateGui() {
 		final boolean hasPath = multiCurveUri_ != null;
 
-		plotButton_.setEnabled(bound_ && hasPath && serviceState_ != PlotterService.State.DISCONNECTED);
+		plotButton_.setEnabled(bound_ && hasPath
+				&& serviceState_ != PlotterService.State.DISCONNECTED);
 		plotButton_.setChecked(bound_ && hasPath && serviceState_ == PlotterService.State.PLOTTING);
 
 		homeButton_.setEnabled(bound_ && serviceState_ == PlotterService.State.STOPPED);
 		exitButton_.setEnabled(bound_);
-		stopButton_.setEnabled(bound_ && hasPath && serviceState_ != PlotterService.State.DISCONNECTED);
+		stopButton_.setEnabled(bound_ && hasPath
+				&& serviceState_ != PlotterService.State.DISCONNECTED);
 		joystick_.setEnabled(bound_ && serviceState_ == PlotterService.State.STOPPED);
 
 		pathImageView_.setVisibility(hasPath ? View.VISIBLE : View.GONE);
@@ -312,7 +330,8 @@ public class PlotterMainActivity extends Activity implements OnClickListener, On
 		final float plotCenterX = plotBounds[0] + plotWidth / 2;
 		final float plotCenterY = plotBounds[1] + plotHeight / 2;
 
-		final float[] offset = { pageCenterX - plotCenterX * scale, pageCenterY - plotCenterY * scale };
+		final float[] offset = { pageCenterX - plotCenterX * scale,
+				pageCenterY - plotCenterY * scale };
 
 		return new TransformedMultiCurve(multiCurve, offset, scale, 1.f / MM_PER_SEC);
 	}
