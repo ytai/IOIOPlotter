@@ -1,16 +1,28 @@
 package mobi.ioio.plotter_app;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+
+import mobi.ioio.plotter.Plotter.MultiCurve;
+import mobi.ioio.plotter.shapes.PointsCurve;
+import mobi.ioio.plotter.shapes.SingleCurveMultiCurve;
 import mobi.ioio.plotter_app.Scribbler.Mode;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -41,6 +53,7 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 	private float darkness_ = 1;
 	private int numLines_ = 0;
 	private static final int GET_IMAGE_REQUEST_CODE = 100;
+	private boolean donePressed_ = false;
 
 	private static final String TAG = "ScribblerActivity";
 
@@ -71,6 +84,7 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 				}
 				blurSeekBar_.setProgress(50);
 				thresholdSeekBar_.setProgress(20);
+				previewCheckbox_.setChecked(false);
 				scribbler_ = new Scribbler(this, data.getData(), getBlur(), getThreshold(),
 						getMode(), new Scribbler.Listener() {
 							@Override
@@ -89,6 +103,17 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 									@Override
 									public void run() {
 										updateProgress(darkness, numLines);
+									}
+								});
+							}
+
+							@Override
+							public void result(final Point[] points, final Rect bounds,
+									final Bitmap thumbnail) {
+								runOnUiThread(new Runnable() {
+									@Override
+									public void run() {
+										scribblerResult(points, bounds, thumbnail);
 									}
 								});
 							}
@@ -167,7 +192,7 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 	private void updateProgress(float darkness, int numLines) {
 		darkness_ = darkness;
 		numLines_ = numLines;
-		doneButton_.setEnabled(darkness < getThreshold());
+		doneButton_.setEnabled(!donePressed_ && darkness < getThreshold());
 		statusTextView_.setText(String.format("%.0f%% (%d)", darkness * 100, numLines));
 	}
 
@@ -226,56 +251,42 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 		startActivityForResult(intent, GET_IMAGE_REQUEST_CODE);
 	}
 
-	private void done() {
+	private void scribblerResult(Point[] points, Rect bounds, Bitmap thumbnail) {
 		scribbler_.stop();
-		doneButton_.setEnabled(false);
+		try {
+			// Write thumbnail file.
+			File thumbnailFile = File.createTempFile("THUMB", ".png", getCacheDir());
+			thumbnail.compress(CompressFormat.PNG, 100, new FileOutputStream(thumbnailFile));
 
-		// // /////////////////////////////////////////////////////////////////////////
-		// // Scale
-		// float blur = blurSeekBar_.getProgress() / 10.0f;
-		// float width = LINE_WIDTH_TO_IMAGE_WIDTH / blur;
-		// float ratio = width / srcImage_.cols();
-		// Imgproc.resize(srcImage_, previewImage_, new Size(), ratio, ratio, Imgproc.INTER_AREA);
-		//
-		// // /////////////////////////////////////////////////////////////////////////
-		// // Mirror
-		// if (mirrorCheckbox_.isChecked()) {
-		// Core.flip(previewImage_, previewImage_, 1);
-		// }
-		//
-		// // /////////////////////////////////////////////////////////////////////////
-		// // Negative
-		//
-		// long start = System.currentTimeMillis();
-		// Log.v(TAG, "Thinning took: " + (System.currentTimeMillis() - start));
-		//
-		// Imgproc.cvtColor(srcImage_, previewImage_, Imgproc.COLOR_GRAY2BGR);
-		// Core.multiply(previewImage_, new Scalar(0.25, 0.25, 0.25), previewImage_);
-		// Core.add(previewImage_, new Scalar(192, 192, 192), previewImage_);
-		//
-		// previewImage_.setTo(new Scalar(0, 0, 255), previewImage_);
+			// Generate trace file.
+			MultiCurve multiCurve = new SingleCurveMultiCurve(new PointsCurve(points),
+					getBounds(bounds));
+			File traceFile = File.createTempFile("TRACE", ".trc", getCacheDir());
+			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(traceFile));
+			oos.writeObject(multiCurve);
+			oos.close();
 
-		// try {
-		// // Write thumbnail file.
-		// File thumbnail = File.createTempFile("THUMB", ".jpg", getCacheDir());
-		// Highgui.imwrite(thumbnail.getAbsolutePath(), procImage_);
-		//
-		// // Generate trace file.
-		// BinaryImage binImage = convert(procImage_);
-		// BinaryImageMultiCurve multiCurve = new BinaryImageMultiCurve(binImage, MIN_CURVE_PIXELS);
-		// File traceFile = File.createTempFile("TRACE", ".trc", getCacheDir());
-		// ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(traceFile));
-		// oos.writeObject(multiCurve);
-		// oos.close();
-		//
-		Intent resultIntent = new Intent();
-		// resultIntent.setData(Uri.fromFile(traceFile));
-		// resultIntent.putExtra("thumbnail", Uri.fromFile(thumbnail));
-		setResult(RESULT_OK, resultIntent);
-		// } catch (IOException e) {
-		// e.printStackTrace();
-		// }
-
+			Intent resultIntent = new Intent();
+			resultIntent.setData(Uri.fromFile(traceFile));
+			resultIntent.putExtra("thumbnail", Uri.fromFile(thumbnailFile));
+			setResult(RESULT_OK, resultIntent);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		finish();
+	}
+
+	private static float[] getBounds(Rect bounds) {
+		return new float[] { bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height };
+	}
+
+	private void done() {
+		scribbler_.requestResult();
+		donePressed_ = true;
+		doneButton_.setEnabled(false);
+		blurSeekBar_.setEnabled(false);
+		thresholdSeekBar_.setEnabled(false);
+		previewCheckbox_.setEnabled(false);
+		imageView_.setEnabled(false);
 	}
 }

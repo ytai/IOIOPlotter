@@ -15,6 +15,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
@@ -31,8 +32,11 @@ public class Scribbler implements Runnable {
 	}
 
 	interface Listener {
-		public void previewFrame(final Bitmap frame);
+		public void previewFrame(Bitmap frame);
+
 		public void progress(float darkness, int numLines);
+
+		public void result(Point[] points, final Rect bounds, Bitmap thumbnail);
 	}
 
 	private final Thread thread_;
@@ -42,11 +46,12 @@ public class Scribbler implements Runnable {
 	private float threshold_;
 	private Mode mode_;
 	private Listener listener_;
+	private boolean requestResult_ = false;
 
 	// Internals
 	private static final float LINE_WIDTH_TO_IMAGE_WIDTH = 450;
 	private static final float GRAY_RESOLUTION = 128;
-	private static final int NUM_ATTEMPTS = 1000;
+	private static final int NUM_ATTEMPTS = 100;
 	private static final int MAX_LINES = 2000;
 	private static Random random_ = new Random();
 	private Mat srcImage_;
@@ -94,6 +99,11 @@ public class Scribbler implements Runnable {
 		notify();
 	}
 
+	public synchronized void requestResult() {
+		requestResult_ = true;
+		notify();
+	}
+
 	@Override
 	public void run() {
 		try {
@@ -136,7 +146,7 @@ public class Scribbler implements Runnable {
 				previewDirty = needMoreLines && mode_ == Mode.Vector || previewImage_ == null
 						|| currentBlur_ != blur_ || currentThreshold_ != threshold_
 						|| currentMode_ != mode_;
-				if (needMoreLines || allLinesDirty || previewDirty) {
+				if (needMoreLines || allLinesDirty || previewDirty || requestResult_) {
 					break;
 				}
 				wait();
@@ -155,9 +165,35 @@ public class Scribbler implements Runnable {
 		if (previewDirty) {
 			generatePreview(blur, threshold, mode);
 		}
+		if (requestResult_ && !needMoreLines) {
+			sendResult(blur, threshold);
+		}
 		currentMode_ = mode;
 		currentBlur_ = blur;
 		currentThreshold_ = threshold;
+	}
+
+	private void sendResult(float blur, float threshold) {
+		// Generate thumbnail.
+		renderPreview(blur, threshold, Mode.Vector);
+		Mat thumbnail = new Mat(previewImage_.rows(), previewImage_.cols() * 2, CvType.CV_8U);
+		imageScaledToPreview_.copyTo(thumbnail.colRange(0, previewImage_.cols()));
+		previewImage_
+				.copyTo(thumbnail.colRange(previewImage_.cols(), previewImage_.cols() * 2));
+		Bitmap bmp = Bitmap.createBitmap(thumbnail.cols(), thumbnail.rows(), Config.ARGB_8888);
+		Utils.matToBitmap(thumbnail, bmp);
+
+		// Generate point array.
+		Point[] points = (Point[]) lines_.subMap(lines_.firstKey(), threshold + Float.MIN_VALUE)
+				.values().toArray(new Point[0]);
+
+		synchronized (this) {
+			if (listener_ != null) {
+				listener_.result(points,
+						new Rect(0, 0, imageResidue_.cols(), imageResidue_.rows()), bmp);
+			}
+			requestResult_ = false;
+		}
 	}
 
 	private void initLines(float blur) {
@@ -201,6 +237,18 @@ public class Scribbler implements Runnable {
 	}
 
 	private void generatePreview(float blur, float threshold, Mode mode) {
+		renderPreview(blur, threshold, mode);
+		Utils.matToBitmap(previewImage_, previewBitmap_);
+		final Bitmap bmp = previewBitmap_;
+
+		synchronized (this) {
+			if (listener_ != null) {
+				listener_.previewFrame(bmp);
+			}
+		}
+	}
+
+	private void renderPreview(float blur, float threshold, Mode mode) {
 		if (mode == Mode.Raster) {
 			// Gaussian blur
 			if (blur > 0) {
@@ -224,14 +272,6 @@ public class Scribbler implements Runnable {
 					Core.line(previewImage_, prevPoint, p, black);
 				}
 				prevPoint = p;
-			}
-		}
-		Utils.matToBitmap(previewImage_, previewBitmap_);
-		final Bitmap bmp = previewBitmap_;
-
-		synchronized (this) {
-			if (listener_ != null) {
-				listener_.previewFrame(bmp);
 			}
 		}
 	}
