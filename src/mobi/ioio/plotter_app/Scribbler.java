@@ -109,9 +109,13 @@ public class Scribbler implements Runnable {
 		try {
 			load();
 			while (!stopped_) {
-				step();
+				try {
+					step();
+				} catch (InterruptedException e) {
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
-		} catch (InterruptedException e) {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -178,13 +182,12 @@ public class Scribbler implements Runnable {
 		renderPreview(blur, threshold, Mode.Vector);
 		Mat thumbnail = new Mat(previewImage_.rows(), previewImage_.cols() * 2, CvType.CV_8U);
 		imageScaledToPreview_.copyTo(thumbnail.colRange(0, previewImage_.cols()));
-		previewImage_
-				.copyTo(thumbnail.colRange(previewImage_.cols(), previewImage_.cols() * 2));
+		previewImage_.copyTo(thumbnail.colRange(previewImage_.cols(), previewImage_.cols() * 2));
 		Bitmap bmp = Bitmap.createBitmap(thumbnail.cols(), thumbnail.rows(), Config.ARGB_8888);
 		Utils.matToBitmap(thumbnail, bmp);
 
 		// Generate point array.
-		Point[] points = (Point[]) lines_.subMap(lines_.firstKey(), threshold + Float.MIN_VALUE)
+		Point[] points = (Point[]) lines_.subMap(lines_.firstKey(), -threshold + Float.MIN_VALUE)
 				.values().toArray(new Point[0]);
 
 		synchronized (this) {

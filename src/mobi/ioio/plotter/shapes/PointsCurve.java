@@ -47,7 +47,7 @@ public class PointsCurve implements Curve, Serializable {
 				final float dy = (float) points_[currentPointIndex_ + 1].y - y0;
 				final float ratio = timeFromCurrent / timeToNext;
 				xy[0] = x0 + dx * ratio;
-				xy[0] = y0 + dy * ratio;
+				xy[1] = y0 + dy * ratio;
 				return;
 			}
 			timeFromCurrent -= timeToNext;
