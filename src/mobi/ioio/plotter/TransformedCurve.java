@@ -16,12 +16,12 @@ public class TransformedCurve implements Curve {
 	}
 	
 	@Override
-	public float totalTime() {
+	public double totalTime() {
 		return curve_.totalTime() * timeScale_;
 	}
 
 	@Override
-	public void getPosTime(float time, float[] xy) {
+	public void getPosTime(double time, float[] xy) {
 		curve_.getPosTime(time / timeScale_, xy);
 		transform(xy);
 	}

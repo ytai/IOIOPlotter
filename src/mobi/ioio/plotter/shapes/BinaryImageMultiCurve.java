@@ -41,7 +41,7 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 	
 	private class TraceCurve implements Curve {
 		private final int[][] chain_;
-		private final float[] times_;
+		private final double[] times_;
 		private int currentIndex_ = 0;
 
 		public TraceCurve(List<int[]> chain) {
@@ -52,8 +52,8 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 				chain_[j][1] = xy[1];
 				j++;
 			}
-			times_ = new float[chain_.length];
-			float time = 0;
+			times_ = new double[chain_.length];
+			double time = 0;
 			for (int i = 0; i < chain_.length; ++i) {
 				times_[i] = time;
 				if (i < chain_.length - 1) {
@@ -65,12 +65,12 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 		}
 
 		@Override
-		public float totalTime() {
+		public double totalTime() {
 			return times_[times_.length - 1];
 		}
 
 		@Override
-		public void getPosTime(float time, float[] xy) {
+		public void getPosTime(double time, float[] xy) {
 			assert time >= times_[currentIndex_];
 			while (currentIndex_ < times_.length - 1 && times_[currentIndex_ + 1] <= time) {
 				++currentIndex_;
@@ -81,9 +81,9 @@ public class BinaryImageMultiCurve implements MultiCurve, Serializable {
 				xy[1] = chain_[currentIndex_][1];
 			} else {
 				// Linear interpolation.
-				final float ratio = (time - times_[currentIndex_]) / (times_[currentIndex_ + 1] - times_[currentIndex_]);
-				xy[0] = (1 - ratio) * chain_[currentIndex_][0] + ratio * chain_[currentIndex_ + 1][0];
-				xy[1] = (1 - ratio) * chain_[currentIndex_][1] + ratio * chain_[currentIndex_ + 1][1];
+				final double ratio = (time - times_[currentIndex_]) / (times_[currentIndex_ + 1] - times_[currentIndex_]);
+				xy[0] = (float) ((1 - ratio) * chain_[currentIndex_][0] + ratio * chain_[currentIndex_ + 1][0]);
+				xy[1] = (float) ((1 - ratio) * chain_[currentIndex_][1] + ratio * chain_[currentIndex_ + 1][1]);
 			}
 		}
 	}

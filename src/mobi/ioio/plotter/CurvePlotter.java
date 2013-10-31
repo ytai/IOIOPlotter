@@ -5,9 +5,9 @@ import ioio.lib.api.Sequencer.ChannelCueSteps;
 
 public class CurvePlotter {
 	public static interface Curve {
-		public float totalTime();
+		public double totalTime();
 
-		public void getPosTime(float time, float[] xy);
+		public void getPosTime(double time, float[] xy);
 	}
 
 	private static final float TICK_RATE = 62500;
@@ -19,8 +19,8 @@ public class CurvePlotter {
 	private final int[] lr_ = new int[2];
 
 	private Curve curve_;
-	private int time_;
-	private int totalTime_;
+	private long time_;
+	private long totalTime_;
 
 	public CurvePlotter(StepperController controller, CoordinateTransformer transformer, float stepTime) {
 		controller_ = controller;
@@ -31,7 +31,7 @@ public class CurvePlotter {
 	public void setCurve(Curve curve) {
 		curve_ = curve;
 		time_ = 0;
-		totalTime_ = (int) Math.ceil(curve.totalTime() * TICK_RATE);
+		totalTime_ = (long) Math.ceil(curve.totalTime() * TICK_RATE);
 	}
 
 	public int nextSegment(ChannelCueSteps[] steps, ChannelCueBinary[] dirs) {
