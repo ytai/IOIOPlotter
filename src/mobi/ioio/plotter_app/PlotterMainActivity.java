@@ -37,7 +37,7 @@ import com.zerokol.views.JoystickView.OnJoystickMoveListener;
 
 public class PlotterMainActivity extends Activity implements OnClickListener,
 		OnJoystickMoveListener, ServiceConnection {
-	private static final float MM_PER_SEC = 50;
+	private static final float MM_PER_SEC = 40;
 	private static final float[] FULL_PAGE_BOUNDS = { 150, 330, 604, 850 };
 	private static final float[] TOP_HALF_BOUNDS = { 150, 330, 604, 590 };
 	private static final float[] BOTTOM_HALF_BOUNDS = { 150, 590, 604, 850 };
