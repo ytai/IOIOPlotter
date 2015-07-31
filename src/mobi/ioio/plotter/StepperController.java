@@ -180,7 +180,7 @@ public class StepperController {
 			pulseWidth /= 8;
 			period /= 8;
 			time *= 32;
-		} else if (period == 0) {
+		} else if (period < 3) {
 			return Result.TOO_FAST;
 		} else {
 			// No need for a prescaler.
