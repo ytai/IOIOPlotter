@@ -4,13 +4,8 @@ import ioio.lib.api.Sequencer.ChannelCueBinary;
 import ioio.lib.api.Sequencer.ChannelCueSteps;
 
 public class CurvePlotter {
-	public static interface Curve {
-		public double totalTime();
 
-		public void getPosTime(double time, float[] xy);
-	}
-
-	private static final float TICK_RATE = 62500;
+    private static final float TICK_RATE = 62500;
 
 	private final StepperController controller_;
 	private final CoordinateTransformer transformer_;

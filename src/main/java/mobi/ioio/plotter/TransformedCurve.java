@@ -1,7 +1,5 @@
 package mobi.ioio.plotter;
 
-import mobi.ioio.plotter.CurvePlotter.Curve;
-
 public class TransformedCurve implements Curve {
 	final float[] offset_ = new float[2];
 	final float scale_;
@@ -26,7 +24,14 @@ public class TransformedCurve implements Curve {
 		transform(xy);
 	}
 
-	private void transform(float[] xy) {
+    @Override
+    public float[] getBounds() {
+        float[] bounds = curve_.getBounds();
+        transform(bounds);
+        return bounds;
+    }
+
+    private void transform(float[] xy) {
 		for (int i = 0; i < xy.length; ++i) {
 			xy[i] = xy[i] * scale_ + offset_[i];
 		}

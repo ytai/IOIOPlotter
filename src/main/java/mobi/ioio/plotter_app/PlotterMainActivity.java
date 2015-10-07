@@ -3,7 +3,7 @@ package mobi.ioio.plotter_app;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 
-import mobi.ioio.plotter.Plotter.MultiCurve;
+import mobi.ioio.plotter.MultiCurve;
 import mobi.ioio.plotter.TransformedMultiCurve;
 import mobi.ioio.plotter_app.PlotterService.IOIOBinder;
 import mobi.ioio.plotter_app.PlotterService.Looper;
@@ -267,7 +267,7 @@ public class PlotterMainActivity extends Activity implements OnClickListener,
 			if (resultCode == RESULT_OK) {
 				try {
 					multiCurveUri_ = data.getData();
-					thumbnailUri_ = (Uri) data.getParcelableExtra("thumbnail");
+					thumbnailUri_ = data.getParcelableExtra("thumbnail");
 					updateGui();
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -316,6 +316,11 @@ public class PlotterMainActivity extends Activity implements OnClickListener,
 
 	private MultiCurve transform(MultiCurve multiCurve) {
 		float[] plotBounds = multiCurve.getBounds();
+
+        if (plotBounds == null) {
+            return multiCurve;
+        }
+
 		final float plotWidth = plotBounds[2] - plotBounds[0];
 		final float plotHeight = plotBounds[3] - plotBounds[1];
 

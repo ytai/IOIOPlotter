@@ -1,6 +1,6 @@
 package mobi.ioio.plotter.shapes;
 
-import mobi.ioio.plotter.CurvePlotter.Curve;
+import mobi.ioio.plotter.Curve;
 
 public class Line implements Curve {
 	private final double totalTime_;
@@ -30,7 +30,17 @@ public class Line implements Curve {
 		xy[1] = (float) (to_[1] * ratio + from_[1] * (1 - ratio));
 	}
 
-	private static double limit(double val, double min, double max) {
+    @Override
+    public float[] getBounds() {
+        return new float[] {
+                Math.min(from_[0], to_[0]),
+                Math.min(from_[1], to_[1]),
+                Math.max(from_[0], to_[0]),
+                Math.max(from_[1], to_[1])
+        };
+    }
+
+    private static double limit(double val, double min, double max) {
 		if (val < min)
 			return min;
 		if (val > max)

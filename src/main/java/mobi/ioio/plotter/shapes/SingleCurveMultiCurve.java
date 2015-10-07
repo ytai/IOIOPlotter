@@ -1,29 +1,45 @@
 package mobi.ioio.plotter.shapes;
 
 import java.io.Serializable;
+import java.util.Iterator;
 
-import mobi.ioio.plotter.CurvePlotter.Curve;
-import mobi.ioio.plotter.Plotter.MultiCurve;
+import mobi.ioio.plotter.Curve;
+import mobi.ioio.plotter.MultiCurve;
 
-public class SingleCurveMultiCurve implements MultiCurve, Serializable {
+public class SingleCurveMultiCurve extends MultiCurve implements Serializable {
 	private static final long serialVersionUID = -8271726700104333260L;
-	private final float[] bounds_;
 	private Curve curve_;
 
-	public SingleCurveMultiCurve(Curve curve, float[] bounds) {
-		bounds_ = bounds;
+	public SingleCurveMultiCurve(Curve curve) {
 		curve_ = curve;
 	}
 
-	@Override
-	public Curve nextCurve() {
-		Curve curve = curve_;
-		curve_ = null;
-		return curve;
-	}
+   @Override
+    public Iterator<Curve> iterator() {
+        return new Iterator<Curve>() {
+            Curve current_ = curve_;
 
-	@Override
+            @Override
+            public boolean hasNext() {
+                return current_ != null;
+            }
+
+            @Override
+            public Curve next() {
+                Curve result = current_;
+                current_ = null;
+                return result;
+            }
+
+            @Override
+            public void remove() {
+                throw new RuntimeException("Not supported.");
+            }
+        };
+    }
+
+    @Override
 	public float[] getBounds() {
-		return bounds_;
+        return curve_.getBounds();
 	}
 }

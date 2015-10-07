@@ -3,7 +3,7 @@ package mobi.ioio.plotter.shapes;
 import java.io.IOException;
 import java.io.Serializable;
 
-import mobi.ioio.plotter.CurvePlotter.Curve;
+import mobi.ioio.plotter.Curve;
 
 import org.opencv.core.Point;
 
@@ -13,14 +13,17 @@ public class PointsCurve implements Curve, Serializable {
 	private Point[] points_;
 	int currentPointIndex_ = 0;
 	double timeOfCurrentPoint_ = 0;
+    private final float[] bounds_;
 
 	public PointsCurve(Point[] points) {
 		assert points.length > 1;
 		totalLength_ = totalLength(points);
+        bounds_ = bounds(points);
 		points_ = points;
 	}
 
-	@Override
+
+    @Override
 	public double totalTime() {
 		return totalLength_;
 	}
@@ -56,7 +59,12 @@ public class PointsCurve implements Curve, Serializable {
 		}
 	}
 
-	private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    @Override
+    public float[] getBounds() {
+        return bounds_.clone();
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
 		out.writeInt(points_.length);
 		for (Point p : points_) {
 			out.writeDouble(p.x);
@@ -86,4 +94,23 @@ public class PointsCurve implements Curve, Serializable {
 	static double dist(Point a, Point b) {
 		return Math.hypot(a.x - b.x, a.y - b.y);
 	}
+
+    private static float[] bounds(Point[] points) {
+        if (points.length < 1) return null;
+
+        float[] bounds = new float[] {
+                (float) points[0].x,
+                (float) points[0].y,
+                (float) points[0].x,
+                (float) points[0].y,
+        };
+
+        for (int i = 1; i < points.length; ++i) {
+            bounds[0] = Math.min(bounds[0], (float) points[i].x);
+            bounds[1] = Math.min(bounds[1], (float) points[i].y);
+            bounds[2] = Math.max(bounds[2], (float) points[i].x);
+            bounds[3] = Math.max(bounds[3], (float) points[i].y);
+        }
+        return bounds;
+    }
 }

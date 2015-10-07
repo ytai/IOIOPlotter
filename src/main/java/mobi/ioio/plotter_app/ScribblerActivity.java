@@ -1,21 +1,5 @@
 package mobi.ioio.plotter_app;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-
-import mobi.ioio.plotter.Plotter.MultiCurve;
-import mobi.ioio.plotter.shapes.PointsCurve;
-import mobi.ioio.plotter.shapes.SingleCurveMultiCurve;
-import mobi.ioio.plotter_app.Scribbler.Mode;
-
-import org.opencv.android.BaseLoaderCallback;
-import org.opencv.android.LoaderCallbackInterface;
-import org.opencv.android.OpenCVLoader;
-import org.opencv.core.Point;
-import org.opencv.core.Rect;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -36,6 +20,20 @@ import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Rect;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+
+import mobi.ioio.plotter.MultiCurve;
+import mobi.ioio.plotter.scribbler.Scribbler;
+import mobi.ioio.plotter.scribbler.Scribbler.Mode;
 
 public class ScribblerActivity extends Activity implements OnClickListener {
 	ImageView imageView_;
@@ -85,40 +83,39 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 				blurSeekBar_.setProgress(50);
 				thresholdSeekBar_.setProgress(20);
 				previewCheckbox_.setChecked(false);
-				scribbler_ = new Scribbler(this, data.getData(), getBlur(), getThreshold(),
-						getMode(), new Scribbler.Listener() {
-							@Override
-							public void previewFrame(final Bitmap frame) {
-								runOnUiThread(new Runnable() {
-									@Override
-									public void run() {
-										imageView_.setImageBitmap(frame);
-									}
-								});
-							}
+                scribbler_ = new Scribbler(this, data.getData(), getBlur(), getThreshold(),
+                        getMode(), new Scribbler.Listener() {
+                    @Override
+                    public void previewFrame(final Bitmap frame) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                imageView_.setImageBitmap(frame);
+                            }
+                        });
+                    }
 
-							@Override
-							public void progress(final float darkness, final int numLines) {
-								runOnUiThread(new Runnable() {
-									@Override
-									public void run() {
-										updateProgress(darkness, numLines);
-									}
-								});
-							}
+                    @Override
+                    public void progress(final float darkness, final int numLines) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                updateProgress(darkness, numLines);
+                            }
+                        });
+                    }
 
-							@Override
-							public void result(final Point[] points, final Rect bounds,
-									final Bitmap thumbnail) {
-								runOnUiThread(new Runnable() {
-									@Override
-									public void run() {
-										scribblerResult(points, bounds, thumbnail);
-									}
-								});
-							}
-						});
-				selectImageTextView_.setVisibility(View.GONE);
+                    @Override
+                    public void result(final MultiCurve curve, final Bitmap thumbnail) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                scribblerResult(curve, thumbnail);
+                            }
+                        });
+                    }
+                });
+                selectImageTextView_.setVisibility(View.GONE);
 				imageView_.setVisibility(View.VISIBLE);
 			} else if (resultCode == RESULT_CANCELED) {
 				// User cancelled the image capture
@@ -251,7 +248,7 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 		startActivityForResult(intent, GET_IMAGE_REQUEST_CODE);
 	}
 
-	private void scribblerResult(Point[] points, Rect bounds, Bitmap thumbnail) {
+	private void scribblerResult(MultiCurve multiCurve, Bitmap thumbnail) {
 		scribbler_.stop();
 		try {
 			// Write thumbnail file.
@@ -259,8 +256,6 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 			thumbnail.compress(CompressFormat.PNG, 100, new FileOutputStream(thumbnailFile));
 
 			// Generate trace file.
-			MultiCurve multiCurve = new SingleCurveMultiCurve(new PointsCurve(points),
-					getBounds(bounds));
 			File traceFile = File.createTempFile("TRACE", ".trc", getCacheDir());
 			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(traceFile));
 			oos.writeObject(multiCurve);

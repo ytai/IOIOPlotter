@@ -1,13 +1,35 @@
 package mobi.ioio.plotter;
 
-import mobi.ioio.plotter.CurvePlotter.Curve;
-import mobi.ioio.plotter.Plotter.MultiCurve;
+import java.util.Iterator;
 
-public class TransformedMultiCurve implements MultiCurve {
+public class TransformedMultiCurve extends MultiCurve {
 	final float[] offset_ = new float[2];
 	final float scale_;
 	final float timeScale_;
 	final MultiCurve mutliCurve_;
+
+    private class Iter implements Iterator<Curve> {
+        private final Iterator<Curve> underlying_;
+
+        Iter() {
+            underlying_ = mutliCurve_.iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return underlying_.hasNext();
+        }
+
+        @Override
+        public Curve next() {
+            return new TransformedCurve(underlying_.next(), offset_, scale_, timeScale_);
+        }
+
+        @Override
+        public void remove() {
+            throw new RuntimeException("Not implemented.");
+        }
+    }
 
 	public TransformedMultiCurve(MultiCurve mutliCurve, float[] offset, float scale, float timeScale) {
 		mutliCurve_ = mutliCurve;
@@ -16,20 +38,8 @@ public class TransformedMultiCurve implements MultiCurve {
 		timeScale_ = timeScale;
 	}
 
-	@Override
-	public Curve nextCurve() {
-		Curve curve = mutliCurve_.nextCurve();
-		if (curve == null)
-			return null;
-		return new TransformedCurve(curve, offset_, scale_, timeScale_);
-	}
-
-	@Override
-	public float[] getBounds() {
-		float[] bounds = mutliCurve_.getBounds();
-		bounds[0] *= scale_;
-		bounds[1] *= scale_;
-		return bounds;
-	}
-
+    @Override
+    public Iterator<Curve> iterator() {
+        return new Iter();
+    }
 }

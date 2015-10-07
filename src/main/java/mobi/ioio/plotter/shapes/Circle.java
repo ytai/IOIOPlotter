@@ -1,6 +1,6 @@
 package mobi.ioio.plotter.shapes;
 
-import mobi.ioio.plotter.CurvePlotter.Curve;
+import mobi.ioio.plotter.Curve;
 
 public class Circle implements Curve {
 	private final float centerX_;
@@ -28,8 +28,16 @@ public class Circle implements Curve {
 		xy[0] = (float) (radius_ * Math.cos(angle)) + centerX_;
 		xy[1] = (float) (radius_ * Math.sin(angle)) + centerY_;
 	}
-	
-	private static double limit(double val, double min, double max) {
+
+    @Override
+    public float[] getBounds() {
+        return new float[] { centerX_ - radius_,
+                             centerY_ - radius_,
+                             centerX_ + radius_,
+                             centerY_ + radius_ };
+    }
+
+    private static double limit(double val, double min, double max) {
 		if (val < min) return min;
 		if (val > max) return max;
 		return val;

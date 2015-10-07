@@ -1,6 +1,6 @@
 package mobi.ioio.plotter.shapes;
 
-import mobi.ioio.plotter.CurvePlotter.Curve;
+import mobi.ioio.plotter.Curve;
 
 public class Delay implements Curve {
 	private final float pos_[];
@@ -22,4 +22,9 @@ public class Delay implements Curve {
 		xy[0] = pos_[0];
 		xy[1] = pos_[1];
 	}
+
+    @Override
+    public float[] getBounds() {
+        return null;
+    }
 }

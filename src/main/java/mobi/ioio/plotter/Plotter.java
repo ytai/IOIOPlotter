@@ -1,6 +1,7 @@
 package mobi.ioio.plotter;
 
-import mobi.ioio.plotter.CurvePlotter.Curve;
+import java.util.Iterator;
+
 import mobi.ioio.plotter.shapes.Delay;
 import mobi.ioio.plotter.shapes.Line;
 import ioio.lib.api.Sequencer.ChannelCueBinary;
@@ -12,13 +13,7 @@ public class Plotter {
 	private static final int PEN_DOWN_PW = 3850;
 	private static final float TICK_RATE = 62500;
 
-	public static interface MultiCurve {
-		public Curve nextCurve();
-
-		public float[] getBounds();
-	}
-
-	enum State {
+    enum State {
 		PEN_UP_DELAY, TRANSITION_LINE, PEN_DOWN_DELAY, CURVE
 	}
 
@@ -37,10 +32,10 @@ public class Plotter {
 	private final float[] xy_ = new float[2];
 	private Curve currentCurve_;
 	private State state_ = State.CURVE;
-	private MultiCurve multiCurve_;
+	private Iterator<Curve> curveIter_;
 
 	public void setMultiCurve(MultiCurve multiCurve) {
-		multiCurve_ = multiCurve;
+        curveIter_ = multiCurve.iterator();
 		state_ = State.CURVE;
 		nextCurve();
 	}
@@ -136,7 +131,7 @@ public class Plotter {
 
 		case CURVE:
 			// Just finished a curve, raise the pen.
-			currentCurve_ = multiCurve_ != null ? multiCurve_.nextCurve() : null;
+			currentCurve_ = (curveIter_ != null && curveIter_.hasNext()) ? curveIter_.next() : null;
 			curvePlotter_.setCurve(new Delay(currentPos, PEN_DELAY_SEC));
 			state_ = State.PEN_UP_DELAY;
 			break;
