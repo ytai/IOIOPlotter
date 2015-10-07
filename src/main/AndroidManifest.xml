@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="mobi.ioio.plotter_app"
+    package="mobi.ioio.plotter_app_new"
     android:versionCode="1"
     android:versionName="1.0" >
 
@@ -20,19 +20,19 @@
             android:required="false" />
 
         <activity
-            android:name=".EdgeTracerActivity"
+            android:name="mobi.ioio.plotter_app.EdgeTracerActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:label="@string/title_activity_edge_tracer"
             android:launchMode="singleTop" >
         </activity>
         <activity
-            android:name=".ScribblerActivity"
+            android:name="mobi.ioio.plotter_app.ScribblerActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:label="@string/title_activity_scribbler"
             android:launchMode="singleTop" >
         </activity>
         <activity
-            android:name=".PlotterMainActivity"
+            android:name="mobi.ioio.plotter_app.PlotterMainActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:label="@string/title_activity_main"
             android:launchMode="singleTask" >
@@ -50,7 +50,7 @@
                 android:resource="@xml/accessory_filter" />
         </activity>
 
-        <service android:name=".PlotterService" >
+        <service android:name="mobi.ioio.plotter_app.PlotterService" >
         </service>
     </application>
 

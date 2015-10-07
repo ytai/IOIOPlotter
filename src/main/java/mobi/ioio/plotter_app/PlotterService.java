@@ -17,6 +17,8 @@ import ioio.lib.util.IOIOLooper;
 import ioio.lib.util.android.IOIOService;
 import mobi.ioio.plotter.Plotter;
 import mobi.ioio.plotter.MultiCurve;
+import mobi.ioio.plotter_app_new.R;
+
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Intent;

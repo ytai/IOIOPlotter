@@ -34,6 +34,7 @@ import java.io.ObjectOutputStream;
 import mobi.ioio.plotter.MultiCurve;
 import mobi.ioio.plotter.scribbler.Scribbler;
 import mobi.ioio.plotter.scribbler.Scribbler.Mode;
+import mobi.ioio.plotter_app_new.R;
 
 public class ScribblerActivity extends Activity implements OnClickListener {
 	ImageView imageView_;

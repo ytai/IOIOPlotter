@@ -1,7 +1,9 @@
 package mobi.ioio.scribbler;
 
-/**
- * Created by ytai on 10/4/15.
- */
+import mobi.ioio.plotter.Curve;
+
 public interface Kernel {
+    Curve getCurve();
+
+    Object getContext();
 }

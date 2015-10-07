@@ -11,6 +11,7 @@ import java.util.List;
 
 import mobi.ioio.plotter.shapes.BinaryImageMultiCurve;
 import mobi.ioio.plotter.trace.BinaryImage;
+import mobi.ioio.plotter_app_new.R;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;

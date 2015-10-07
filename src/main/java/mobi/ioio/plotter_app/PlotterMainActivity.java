@@ -8,6 +8,8 @@ import mobi.ioio.plotter.TransformedMultiCurve;
 import mobi.ioio.plotter_app.PlotterService.IOIOBinder;
 import mobi.ioio.plotter_app.PlotterService.Looper;
 import mobi.ioio.plotter_app.PlotterService.State;
+import mobi.ioio.plotter_app_new.R;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
