@@ -130,4 +130,8 @@ public class GeometryUtil {
 
         return result;
     }
+
+    static float degToRad(float deg) {
+        return (float) (deg * Math.PI / 180);
+    }
 }

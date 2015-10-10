@@ -11,5 +11,8 @@
         <item>Lollipop</item>
         <item>Bezier</item>
         <item>Cartesian</item>
+        <item>Triangles</item>
+        <item>Diagonals</item>
+        <item>Circuit</item>
     </string-array>
 </resources>

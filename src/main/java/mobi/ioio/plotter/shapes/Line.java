@@ -7,16 +7,21 @@ public class Line implements Curve {
 	private final float from_[];
 	private final float to_[];
 
-	public Line(float from[], float to[], double mmPerSec) {
-		assert from.length == 2;
-		assert to.length == 2;
+    public Line(float from[], float to[], double mmPerSec) {
+        assert from.length == 2;
+        assert to.length == 2;
 
-		totalTime_ = Math.hypot(to[0] - from[0], to[1] - from[1]) / mmPerSec;
-		from_ = from.clone();
-		to_ = to.clone();
-	}
+        totalTime_ = Math.hypot(to[0] - from[0], to[1] - from[1]) / mmPerSec;
+        from_ = from.clone();
+        to_ = to.clone();
+    }
+    public Line(float fromx, float fromy, float tox, float toy, double mmPerSec) {
+        totalTime_ = Math.hypot(tox - fromx, toy - fromy) / mmPerSec;
+        from_ = new float[] { fromx, fromy };
+        to_ = new float[] { tox, toy };
+    }
 
-	@Override
+    @Override
 	public double totalTime() {
 		return totalTime_;
 	}
