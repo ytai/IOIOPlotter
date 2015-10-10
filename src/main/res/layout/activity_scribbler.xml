@@ -46,6 +46,7 @@
 
             <SeekBar
                 android:id="@+id/blur"
+                android:enabled="false"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -75,6 +76,7 @@
 
             <SeekBar
                 android:id="@+id/threshold"
+                android:enabled="false"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -98,6 +100,7 @@
 
         <CheckBox
             android:id="@+id/preview"
+            android:enabled="false"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:checked="false"

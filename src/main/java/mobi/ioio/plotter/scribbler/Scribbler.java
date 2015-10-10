@@ -53,6 +53,7 @@ public class Scribbler implements Runnable {
     private Listener listener_;
     private KernelFactory kernelFactory_;
     private boolean requestResult_ = false;
+    private boolean requestReset_ = false;
 
     // Internals
     private static final float LINE_WIDTH_TO_IMAGE_WIDTH = 450;
@@ -112,6 +113,11 @@ public class Scribbler implements Runnable {
         notify();
     }
 
+    public synchronized void requestReset() {
+        requestReset_ = true;
+        notify();
+    }
+
     public synchronized void setKernelFactory(KernelFactory factory) {
         kernelFactory_ = factory;
         notify();
@@ -159,7 +165,7 @@ public class Scribbler implements Runnable {
         synchronized (this) {
             while (true) {
                 invalidateAll = imageResidue_ == null || currentBlur_ != blur_
-                        || currentKernelFactory_ != kernelFactory_;
+                        || currentKernelFactory_ != kernelFactory_ || requestReset_;
                 needMoreInstances = curves_.isEmpty() || -curves_.lastKey() > threshold_
                         && curves_.size() < MAX_INSTANCES;
                 previewDirty = needMoreInstances && mode_ == Mode.Vector || previewImage_ == null
@@ -178,6 +184,7 @@ public class Scribbler implements Runnable {
         }
         if (invalidateAll) {
             clear(blur);
+            requestReset_ = false;
         }
         if (needMoreInstances) {
             addKernelInstance(blur);

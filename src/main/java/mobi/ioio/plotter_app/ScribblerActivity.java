@@ -54,6 +54,7 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 	SeekBar thresholdSeekBar_;
 	CheckBox previewCheckbox_;
 	Button doneButton_;
+    Button resetButton_;
     Spinner kernelSpinner_;
 
 	private Scribbler scribbler_;
@@ -93,6 +94,10 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 				blurSeekBar_.setProgress(50);
 				thresholdSeekBar_.setProgress(20);
 				previewCheckbox_.setChecked(false);
+                blurSeekBar_.setEnabled(true);
+                thresholdSeekBar_.setEnabled(true);
+                previewCheckbox_.setEnabled(true);
+                resetButton_.setEnabled(true);
                 scribbler_ = new Scribbler(this, data.getData(), getBlur(), getThreshold(),
                         getMode(), new Scribbler.Listener() {
                     @Override
@@ -260,7 +265,10 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 
 		doneButton_ = (Button) findViewById(R.id.done);
 		doneButton_.setOnClickListener(this);
-	}
+
+        resetButton_ = (Button) findViewById(R.id.reset);
+        resetButton_.setOnClickListener(this);
+    }
 
 	@Override
 	public void onClick(View view) {
@@ -280,7 +288,9 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 			selectImage();
 		} else if (view == doneButton_) {
 			done();
-		}
+		} else if (view == resetButton_) {
+            reset();
+        }
 	}
 
 	private void selectImage() {
@@ -324,5 +334,12 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 		thresholdSeekBar_.setEnabled(false);
 		previewCheckbox_.setEnabled(false);
 		imageView_.setEnabled(false);
+        resetButton_.setEnabled(false);
 	}
+
+    private void reset() {
+        if (scribbler_ != null) {
+            scribbler_.requestReset();
+        }
+    }
 }
