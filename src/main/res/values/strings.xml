@@ -9,5 +9,6 @@
     <string-array name="kernels">
         <item>Lines</item>
         <item>Lollipop</item>
+        <item>Bezier</item>
     </string-array>
 </resources>
