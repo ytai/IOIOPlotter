@@ -36,6 +36,7 @@ import java.io.ObjectOutputStream;
 
 import mobi.ioio.plotter.MultiCurve;
 import mobi.ioio.plotter.scribbler.BezierKernelFactory;
+import mobi.ioio.plotter.scribbler.CartesianKernelFactory;
 import mobi.ioio.plotter.scribbler.CircleKernelFactory;
 import mobi.ioio.plotter.scribbler.KernelFactory;
 import mobi.ioio.plotter.scribbler.LineKernelFactory;
@@ -165,6 +166,8 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
                 return new CircleKernelFactory(false);
             case 2:
                 return new BezierKernelFactory();
+            case 3:
+                return new CartesianKernelFactory(false);
         }
         throw new RuntimeException("Invalid factory");
     }

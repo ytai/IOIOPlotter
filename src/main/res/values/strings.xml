@@ -10,5 +10,6 @@
         <item>Lines</item>
         <item>Lollipop</item>
         <item>Bezier</item>
+        <item>Cartesian</item>
     </string-array>
 </resources>
