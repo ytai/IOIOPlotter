@@ -8,23 +8,31 @@ public class Circle implements Curve {
 	private final float radius_;
 	final double totalTime_;
 	final float radPerSec_;
+    final float startAngle_;
+
+    public static Circle createFromStartAndCenter(float centerX, float centerY, float startX, float startY) {
+        float radius = (float) Math.hypot(centerY - startY, startX - centerX);
+        float startAngle = (float) Math.atan2(centerY - startY, startX - centerX);
+        return new Circle(centerX, centerY, radius, startAngle);
+    }
 	
-	public Circle(float centerX, float centerY, float radius, float mmPerSec) {
+	public Circle(float centerX, float centerY, float radius, float startAngle) {
 		centerX_ = centerX;
 		centerY_ = centerY;
 		radius_ = radius;
-		totalTime_ = 2 * Math.PI * radius / mmPerSec;
-		radPerSec_ = mmPerSec / radius;
+		totalTime_ = 2 * Math.PI * radius;
+		radPerSec_ = 1 / radius;
+        startAngle_ = startAngle;
 	}
 
-	@Override
+    @Override
 	public double totalTime() {
 		return totalTime_; 
 	}
 
 	@Override
 	public void getPosTime(double time, float[] xy) {
-		final double angle = limit(time * radPerSec_, 0, (float) (2 * Math.PI));
+		final double angle = startAngle_ + limit(time * radPerSec_, 0, (float) (2 * Math.PI));
 		xy[0] = (float) (radius_ * Math.cos(angle)) + centerX_;
 		xy[1] = (float) (radius_ * Math.sin(angle)) + centerY_;
 	}
@@ -42,5 +50,4 @@ public class Circle implements Curve {
 		if (val > max) return max;
 		return val;
 	}
-
 }

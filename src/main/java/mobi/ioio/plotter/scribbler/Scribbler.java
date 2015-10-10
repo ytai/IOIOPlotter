@@ -57,7 +57,7 @@ public class Scribbler implements Runnable {
     // Internals
     private static final float LINE_WIDTH_TO_IMAGE_WIDTH = 450;
     private static final float GRAY_RESOLUTION = 128;
-    private static final int NUM_ATTEMPTS = 100;
+    private static final int NUM_ATTEMPTS = 200;
     private static final int MAX_INSTANCES = 2000;
     private static Random random_ = new Random();
     private Mat srcImage_;
@@ -67,19 +67,20 @@ public class Scribbler implements Runnable {
     private float currentBlur_;
     private float currentThreshold_;
     private Mode currentMode_;
+    private KernelFactory currentKernelFactory_;
     private SortedMap<Float, KernelInstance> curves_ = new TreeMap<Float, KernelInstance>();
     private Bitmap previewBitmap_;
     boolean stopped_ = false;
 
     public Scribbler(Context context, Uri uri, float initialBlur, float initialThershold,
-                     Mode initialMode, Listener listener) {
+                     Mode initialMode, Listener listener, KernelFactory initialFactory) {
         context_ = context;
         uri_ = uri;
         blur_ = initialBlur;
         threshold_ = initialThershold;
         mode_ = initialMode;
         listener_ = listener;
-        kernelFactory_ = new LineKernelFactory(false);
+        kernelFactory_ = initialFactory;
 
         thread_ = new Thread(this);
         thread_.start();
@@ -108,6 +109,11 @@ public class Scribbler implements Runnable {
 
     public synchronized void requestResult() {
         requestResult_ = true;
+        notify();
+    }
+
+    public synchronized void setKernelFactory(KernelFactory factory) {
+        kernelFactory_ = factory;
         notify();
     }
 
@@ -148,10 +154,12 @@ public class Scribbler implements Runnable {
         boolean needMoreInstances;
         float blur;
         float threshold;
+        KernelFactory factory;
         Mode mode;
         synchronized (this) {
             while (true) {
-                invalidateAll = imageResidue_ == null || currentBlur_ != blur_;
+                invalidateAll = imageResidue_ == null || currentBlur_ != blur_
+                        || currentKernelFactory_ != kernelFactory_;
                 needMoreInstances = curves_.isEmpty() || -curves_.lastKey() > threshold_
                         && curves_.size() < MAX_INSTANCES;
                 previewDirty = needMoreInstances && mode_ == Mode.Vector || previewImage_ == null
@@ -166,6 +174,7 @@ public class Scribbler implements Runnable {
             blur = blur_;
             threshold = threshold_;
             mode = mode_;
+            factory = kernelFactory_;
         }
         if (invalidateAll) {
             clear(blur);
@@ -182,6 +191,7 @@ public class Scribbler implements Runnable {
         currentMode_ = mode;
         currentBlur_ = blur;
         currentThreshold_ = threshold;
+        currentKernelFactory_ = factory;
     }
 
     private void sendResult(float blur, float threshold) {

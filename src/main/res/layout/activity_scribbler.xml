@@ -103,6 +103,12 @@
             android:checked="false"
             android:text="Preview" />
 
+        <Spinner
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/kernel"
+            android:spinnerMode="dropdown"/>
+
         <Button
             android:id="@+id/reset"
             android:layout_width="wrap_content"

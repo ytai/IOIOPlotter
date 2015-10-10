@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -18,6 +20,7 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,11 +35,14 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 
 import mobi.ioio.plotter.MultiCurve;
+import mobi.ioio.plotter.scribbler.CircleKernelFactory;
+import mobi.ioio.plotter.scribbler.KernelFactory;
+import mobi.ioio.plotter.scribbler.LineKernelFactory;
 import mobi.ioio.plotter.scribbler.Scribbler;
 import mobi.ioio.plotter.scribbler.Scribbler.Mode;
 import mobi.ioio.plotter_app_new.R;
 
-public class ScribblerActivity extends Activity implements OnClickListener {
+public class ScribblerActivity extends Activity implements OnClickListener, AdapterView.OnItemSelectedListener {
 	ImageView imageView_;
 	TextView selectImageTextView_;
 	TextView blurTextView_;
@@ -46,6 +52,7 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 	SeekBar thresholdSeekBar_;
 	CheckBox previewCheckbox_;
 	Button doneButton_;
+    Spinner kernelSpinner_;
 
 	private Scribbler scribbler_;
 
@@ -61,9 +68,9 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 		super.onCreate(savedInstanceState);
 		Log.i(TAG, "Trying to load OpenCV library");
 		if (!OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_11, this, mOpenCVCallBack)) {
-			Toast.makeText(this, "Cannot connect to OpenCV Manager", Toast.LENGTH_LONG).show();
-			finish();
-		}
+            Toast.makeText(this, "Cannot connect to OpenCV Manager", Toast.LENGTH_LONG).show();
+            finish();
+        }
 	}
 
 	@Override
@@ -115,7 +122,7 @@ public class ScribblerActivity extends Activity implements OnClickListener {
                             }
                         });
                     }
-                });
+                }, createKernelFactory(kernelSpinner_.getSelectedItemPosition()));
                 selectImageTextView_.setVisibility(View.GONE);
 				imageView_.setVisibility(View.VISIBLE);
 			} else if (resultCode == RESULT_CANCELED) {
@@ -126,7 +133,7 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 		}
 	}
 
-	private Mode getMode() {
+    private Mode getMode() {
 		return previewCheckbox_.isChecked() ? Mode.Vector : Mode.Raster;
 	}
 
@@ -149,7 +156,29 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 		}
 	};
 
-	private class UpdateListener implements OnSeekBarChangeListener, OnCheckedChangeListener {
+    private KernelFactory createKernelFactory(int pos) {
+        switch (pos) {
+            case 0:
+                return new LineKernelFactory(false);
+            case 1:
+                return new CircleKernelFactory(false);
+        }
+        throw new RuntimeException("Invalid factory");
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
+        if (scribbler_ != null) {
+            scribbler_.setKernelFactory(createKernelFactory(pos));
+        }
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> adapterView) {
+        // Shouldn't happen.
+    }
+
+    private class UpdateListener implements OnSeekBarChangeListener, OnCheckedChangeListener {
 		@Override
 		public void onStopTrackingTouch(SeekBar seekBar) {
 		}
@@ -217,6 +246,11 @@ public class ScribblerActivity extends Activity implements OnClickListener {
 
 		previewCheckbox_ = (CheckBox) findViewById(R.id.preview);
 		previewCheckbox_.setOnCheckedChangeListener(updateListener_);
+
+        kernelSpinner_ = (Spinner) findViewById(R.id.kernel);
+        kernelSpinner_.setAdapter(ArrayAdapter.createFromResource(
+                this, R.array.kernels, android.R.layout.simple_spinner_item));
+        kernelSpinner_.setOnItemSelectedListener(this);
 
 		doneButton_ = (Button) findViewById(R.id.done);
 		doneButton_.setOnClickListener(this);
