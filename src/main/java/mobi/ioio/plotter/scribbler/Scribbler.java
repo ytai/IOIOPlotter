@@ -58,7 +58,7 @@ public class Scribbler implements Runnable {
     private static final float LINE_WIDTH_TO_IMAGE_WIDTH = 450;
     private static final float GRAY_RESOLUTION = 128;
     private static final int NUM_ATTEMPTS = 200;
-    private static final int MAX_INSTANCES = 2000;
+    private static final int MAX_INSTANCES = 3000;
     private static Random random_ = new Random();
     private Mat srcImage_;
     private Mat imageScaledToPreview_;
