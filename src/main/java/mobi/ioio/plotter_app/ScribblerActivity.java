@@ -38,9 +38,12 @@ import mobi.ioio.plotter.MultiCurve;
 import mobi.ioio.plotter.scribbler.BezierKernelFactory;
 import mobi.ioio.plotter.scribbler.CartesianKernelFactory;
 import mobi.ioio.plotter.scribbler.CircleKernelFactory;
+import mobi.ioio.plotter.scribbler.ConstrainedCurveKernel;
+import mobi.ioio.plotter.scribbler.GeometryUtil;
 import mobi.ioio.plotter.scribbler.KernelFactory;
 import mobi.ioio.plotter.scribbler.LineKernelFactory;
-import mobi.ioio.plotter.scribbler.ParallelsKernelFactory;
+import mobi.ioio.plotter.scribbler.MixedKernelFactory;
+import mobi.ioio.plotter.scribbler.ParallelsKernel;
 import mobi.ioio.plotter.scribbler.Scribbler;
 import mobi.ioio.plotter.scribbler.Scribbler.Mode;
 import mobi.ioio.plotter_app_new.R;
@@ -175,11 +178,20 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
             case 3:
                 return new CartesianKernelFactory(false);
             case 4:
-                return new ParallelsKernelFactory(new float[] { 0, 60, 120 });
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new ParallelsKernel(GeometryUtil.degToRad(0)),
+                        new ParallelsKernel(GeometryUtil.degToRad(60)),
+                        new ParallelsKernel(GeometryUtil.degToRad(120)) });
             case 5:
-                return new ParallelsKernelFactory(new float[] { 45, 135 });
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new ParallelsKernel(GeometryUtil.degToRad(45)),
+                        new ParallelsKernel(GeometryUtil.degToRad(135)) });
             case 6:
-                return new ParallelsKernelFactory(new float[] { 0, 45, 90, 135 });
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new ParallelsKernel(GeometryUtil.degToRad(0)),
+                        new ParallelsKernel(GeometryUtil.degToRad(45)),
+                        new ParallelsKernel(GeometryUtil.degToRad(90)),
+                        new ParallelsKernel(GeometryUtil.degToRad(135)) });
         }
         throw new RuntimeException("Invalid factory");
     }

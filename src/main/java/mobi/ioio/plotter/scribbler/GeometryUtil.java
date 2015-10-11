@@ -1,7 +1,7 @@
 package mobi.ioio.plotter.scribbler;
 
 public class GeometryUtil {
-    static float normalizeAngle(float angle) {
+    public static float normalizeAngle(float angle) {
         double cycles = angle / (2 * Math.PI);
         double remainder = cycles - Math.floor(cycles);
         return (float) (remainder * 2 * Math.PI);
@@ -18,7 +18,7 @@ public class GeometryUtil {
      *         the "front" of the line with the borders. Elements [2,3] are the same for the "back"
      *         of the line. Element 4 is the distance to the front intersection and 5 to the back.
      */
-    static float[] intersectLineWithBorders(float width, float height, float x, float y, float angle) {
+    public static float[] intersectLineWithBorders(float width, float height, float x, float y, float angle) {
         angle = normalizeAngle(angle);
         float tana = (float) Math.tan(angle);
 
@@ -131,7 +131,7 @@ public class GeometryUtil {
         return result;
     }
 
-    static float degToRad(float deg) {
+    public static float degToRad(float deg) {
         return (float) (deg * Math.PI / 180);
     }
 }
