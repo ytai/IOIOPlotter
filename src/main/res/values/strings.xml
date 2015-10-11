@@ -14,5 +14,12 @@
         <item>Triangles</item>
         <item>Diagonals</item>
         <item>Circuit</item>
+        <item>Perspective</item>
+        <item>Two Suns</item>
+        <item>Polar</item>
+        <item>Bipolar</item>
+        <item>Quadpolar</item>
+        <item>Corner-pole</item>
+        <item>Off-center</item>
     </string-array>
 </resources>

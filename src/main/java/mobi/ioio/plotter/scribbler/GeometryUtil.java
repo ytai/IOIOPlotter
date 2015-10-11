@@ -1,5 +1,10 @@
 package mobi.ioio.plotter.scribbler;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 public class GeometryUtil {
     public static float normalizeAngle(float angle) {
         double cycles = angle / (2 * Math.PI);
@@ -133,5 +138,48 @@ public class GeometryUtil {
 
     public static float degToRad(float deg) {
         return (float) (deg * Math.PI / 180);
+    }
+
+    public static float[] intersectArcWithLine(float dist, float radius, float angle) {
+        if (radius <= dist) return null;
+        float a = (float) Math.acos(dist / radius);
+        return new float[] { angle + a, angle - a };
+    }
+
+    public static float[] intersectArcWithBorders(float width, float height, float centerx, float centery, float radius, float startAngle) {
+        ArrayList<Float> intersectionAngles = new ArrayList<Float>(8);
+
+        // Intersect with all borders.
+        float[] intersectTop = intersectArcWithLine(Math.abs(centery), radius, (float) Math.copySign(Math.PI / 2, centery));
+        float[] intersectBottom = intersectArcWithLine(Math.abs(height - centery), radius, (float) Math.copySign(Math.PI / 2, centery - height));
+        float[] intersectLeft = intersectArcWithLine(Math.abs(centerx), radius, centerx < 0 ? 0 : (float) Math.PI);
+        float[] intersectRight = intersectArcWithLine(Math.abs(width - centerx), radius, centerx < width ? 0 : (float) Math.PI);
+
+        // Add all intersections to list.
+        for (float[] angles : new float[][] {intersectTop, intersectBottom, intersectLeft, intersectRight }) {
+            if (angles != null) {
+                for (float angle : angles) {
+                    intersectionAngles.add(angle);
+                }
+            }
+        }
+
+        // If there are no intersections at all, we can go a full circle in either direction.
+        if (intersectionAngles.isEmpty()) return new float[] {(float) (-2 * Math.PI),
+                                                              (float) (2 * Math.PI)};
+
+        // Make all angles relative to start angle.
+        for (int i = 0; i < intersectionAngles.size(); ++i) {
+            intersectionAngles.set(i, normalizeAngle(intersectionAngles.get(i) - startAngle));
+        }
+
+        // Sort angles.
+        Collections.sort(intersectionAngles);
+
+        // Now, the first entry is the first clockwise intersection and the last is the first counter-clockwise.
+        return new float[] {
+                intersectionAngles.get(0),
+                (float) (intersectionAngles.get(intersectionAngles.size() - 1) - 2 * Math.PI)
+        };
     }
 }

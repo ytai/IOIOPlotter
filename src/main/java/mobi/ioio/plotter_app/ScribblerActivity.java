@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 
 import mobi.ioio.plotter.MultiCurve;
+import mobi.ioio.plotter.scribbler.ArcsKernel;
 import mobi.ioio.plotter.scribbler.BezierKernelFactory;
 import mobi.ioio.plotter.scribbler.CartesianKernelFactory;
 import mobi.ioio.plotter.scribbler.CircleKernelFactory;
@@ -44,6 +45,7 @@ import mobi.ioio.plotter.scribbler.KernelFactory;
 import mobi.ioio.plotter.scribbler.LineKernelFactory;
 import mobi.ioio.plotter.scribbler.MixedKernelFactory;
 import mobi.ioio.plotter.scribbler.ParallelsKernel;
+import mobi.ioio.plotter.scribbler.RadialsKernel;
 import mobi.ioio.plotter.scribbler.Scribbler;
 import mobi.ioio.plotter.scribbler.Scribbler.Mode;
 import mobi.ioio.plotter_app_new.R;
@@ -192,6 +194,43 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
                         new ParallelsKernel(GeometryUtil.degToRad(45)),
                         new ParallelsKernel(GeometryUtil.degToRad(90)),
                         new ParallelsKernel(GeometryUtil.degToRad(135)) });
+            case 7:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new ParallelsKernel(GeometryUtil.degToRad(0)),
+                        new ParallelsKernel(GeometryUtil.degToRad(90)),
+                        new RadialsKernel(0.5f, 0.5f) });
+
+            case 8:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new RadialsKernel(0, 0),
+                        new RadialsKernel(0, 1) });
+
+            case 9:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new RadialsKernel(0.5f, 0.5f),
+                        new ArcsKernel(0.5f, 0.5f) });
+
+            case 10:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new ArcsKernel(0, 0),
+                        new ArcsKernel(1, 1) });
+
+            case 11:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new ArcsKernel(0, 0),
+                        new ArcsKernel(0, 1),
+                        new ArcsKernel(1, 0),
+                        new ArcsKernel(1, 1) });
+
+            case 12:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new RadialsKernel(0, 0),
+                        new ArcsKernel(0, 0) });
+
+            case 13:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new RadialsKernel(0.6f, 0.6f),
+                        new ArcsKernel(0.4f, 0.4f) });
         }
         throw new RuntimeException("Invalid factory");
     }
