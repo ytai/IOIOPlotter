@@ -15,11 +15,14 @@
         <item>Diagonals</item>
         <item>Circuit</item>
         <item>Perspective</item>
-        <item>Two Suns</item>
+        <item>Two Suns (Left)</item>
+        <item>Two Suns (Right)</item>
         <item>Polar</item>
-        <item>Bipolar</item>
+        <item>Bipolar (Left)</item>
+        <item>Bipolar (Right)</item>
         <item>Quadpolar</item>
-        <item>Corner-pole</item>
+        <item>Corner-pole (Left)</item>
+        <item>Corner-pole (Right)</item>
         <item>Off-center</item>
     </string-array>
 </resources>

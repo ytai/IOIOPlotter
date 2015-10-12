@@ -208,27 +208,42 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 
             case 9:
                 return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new RadialsKernel(1, 0),
+                        new RadialsKernel(1, 1) });
+
+            case 10:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
                         new RadialsKernel(0.5f, 0.5f),
                         new ArcsKernel(0.5f, 0.5f) });
 
-            case 10:
+            case 11:
                 return new MixedKernelFactory(new ConstrainedCurveKernel[] {
                         new ArcsKernel(0, 0),
                         new ArcsKernel(1, 1) });
 
-            case 11:
+            case 12:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new ArcsKernel(1, 0),
+                        new ArcsKernel(0, 1) });
+
+            case 13:
                 return new MixedKernelFactory(new ConstrainedCurveKernel[] {
                         new ArcsKernel(0, 0),
                         new ArcsKernel(0, 1),
                         new ArcsKernel(1, 0),
                         new ArcsKernel(1, 1) });
 
-            case 12:
+            case 14:
                 return new MixedKernelFactory(new ConstrainedCurveKernel[] {
                         new RadialsKernel(0, 0),
                         new ArcsKernel(0, 0) });
 
-            case 13:
+            case 15:
+                return new MixedKernelFactory(new ConstrainedCurveKernel[] {
+                        new RadialsKernel(1, 0),
+                        new ArcsKernel(1, 0) });
+
+            case 16:
                 return new MixedKernelFactory(new ConstrainedCurveKernel[] {
                         new RadialsKernel(0.6f, 0.6f),
                         new ArcsKernel(0.4f, 0.4f) });
