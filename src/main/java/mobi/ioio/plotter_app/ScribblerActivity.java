@@ -98,7 +98,7 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 					scribbler_.stop();
 				}
 				blurSeekBar_.setProgress(50);
-				thresholdSeekBar_.setProgress(20);
+				thresholdSeekBar_.setProgress(200);
 				previewCheckbox_.setChecked(false);
                 blurSeekBar_.setEnabled(true);
                 thresholdSeekBar_.setEnabled(true);
@@ -152,7 +152,7 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 	}
 
 	private float getThreshold() {
-		return thresholdSeekBar_.getProgress() / 100.f;
+		return thresholdSeekBar_.getProgress() / 1000.f;
 	}
 
 	private float getBlur() {
