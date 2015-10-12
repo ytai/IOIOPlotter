@@ -57,7 +57,7 @@ public class BinaryImageMultiCurve extends MultiCurve implements Serializable {
             }
             return null;
         }
-        private class TraceCurve implements Curve {
+        private class TraceCurve extends Curve {
             private final int[][] chain_;
             private final double[] times_;
             private int currentIndex_ = 0;

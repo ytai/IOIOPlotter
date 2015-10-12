@@ -1,8 +1,13 @@
 package mobi.ioio.plotter.shapes;
 
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+
 import mobi.ioio.plotter.Curve;
 
-public class Circle implements Curve {
+public class Circle extends Curve {
 	private final float centerX_;
 	private final float centerY_;
 	private final float radius_;
@@ -43,6 +48,11 @@ public class Circle implements Curve {
                              centerY_ - radius_,
                              centerX_ + radius_,
                              centerY_ + radius_ };
+    }
+
+    @Override
+    public void renderToMat(Mat mat, Scalar color) {
+        Core.circle(mat, new Point(centerX_, centerY_), Math.round(radius_), color);
     }
 
     private static double limit(double val, double min, double max) {

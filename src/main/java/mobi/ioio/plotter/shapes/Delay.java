@@ -2,7 +2,7 @@ package mobi.ioio.plotter.shapes;
 
 import mobi.ioio.plotter.Curve;
 
-public class Delay implements Curve {
+public class Delay extends Curve {
 	private final float pos_[];
 	private final double time_;
 	

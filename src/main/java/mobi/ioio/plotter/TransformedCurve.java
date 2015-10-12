@@ -1,6 +1,6 @@
 package mobi.ioio.plotter;
 
-public class TransformedCurve implements Curve {
+public class TransformedCurve extends Curve {
 	final float[] offset_ = new float[2];
 	final float scale_;
 	final float timeScale_;

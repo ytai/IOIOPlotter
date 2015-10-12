@@ -25,11 +25,8 @@ import android.graphics.Bitmap.Config;
 import android.net.Uri;
 
 import mobi.ioio.plotter.MultiCurve;
-import mobi.ioio.plotter.MultiCurveRenderer;
 import mobi.ioio.plotter.TransformedMultiCurve;
 import mobi.ioio.plotter.shapes.ConcatMultiCurve;
-import mobi.ioio.plotter.shapes.Line;
-import mobi.ioio.plotter.shapes.SingleCurveMultiCurve;
 
 public class Scribbler implements Runnable {
     public enum Mode {
@@ -65,6 +62,7 @@ public class Scribbler implements Runnable {
     private Mat imageScaledToPreview_;
     private Mat imageResidue_;
     private Mat previewImage_;
+    private int previewImageCurveCount_;
     private float currentBlur_;
     private float currentThreshold_;
     private Mode currentMode_;
@@ -155,7 +153,8 @@ public class Scribbler implements Runnable {
     }
 
     private void step() throws InterruptedException {
-        boolean previewDirty;
+        boolean previewInvalid;
+        boolean previewNeedsUpdate;
         boolean invalidateAll;
         boolean needMoreInstances;
         float blur;
@@ -166,12 +165,13 @@ public class Scribbler implements Runnable {
             while (true) {
                 invalidateAll = imageResidue_ == null || currentBlur_ != blur_
                         || currentKernelFactory_ != kernelFactory_ || requestReset_;
-                needMoreInstances = curves_.isEmpty() || -curves_.lastKey() > threshold_
+                needMoreInstances = invalidateAll || curves_.isEmpty() || -curves_.lastKey() > threshold_
                         && curves_.size() < MAX_INSTANCES;
-                previewDirty = needMoreInstances && mode_ == Mode.Vector || previewImage_ == null
-                        || currentBlur_ != blur_ || currentThreshold_ != threshold_
-                        || currentMode_ != mode_;
-                if (needMoreInstances || invalidateAll || previewDirty || requestResult_) {
+                previewInvalid = invalidateAll || currentMode_ != mode_;
+                previewNeedsUpdate = previewInvalid || needMoreInstances && mode_ == Mode.Vector
+                        || currentThreshold_ != threshold_;
+                if (needMoreInstances || invalidateAll || previewInvalid ||  previewNeedsUpdate
+                        || requestResult_) {
                     break;
                 }
                 wait();
@@ -189,7 +189,11 @@ public class Scribbler implements Runnable {
         if (needMoreInstances) {
             addKernelInstance(blur);
         }
-        if (previewDirty) {
+        if (previewInvalid) {
+            previewImage_.setTo(new Scalar(255));
+            previewImageCurveCount_ = 0;
+        }
+        if (previewNeedsUpdate) {
             generatePreview(blur, threshold, mode);
         }
         if (requestResult_ && !needMoreInstances) {
@@ -281,17 +285,25 @@ public class Scribbler implements Runnable {
             // Simulate threshold
             Core.add(previewImage_, new Scalar(threshold * 255), previewImage_);
         } else {
-            previewImage_.setTo(new Scalar(255));
-            Point prevPoint = null;
+            // Find how many curves we need to render.
+            SortedMap<Float, KernelInstance> curves = curves_.headMap(-threshold + Float.MIN_VALUE);
+
+            // See if we can use a cached preview.
+            if (curves.size() < previewImageCurveCount_) {
+                previewImage_.setTo(new Scalar(255));
+                previewImageCurveCount_ = 0;
+            }
+
             final Scalar black = new Scalar(0);
-            for (Entry<Float, KernelInstance> e : curves_.entrySet()) {
-                if (-e.getKey() < threshold) {
-                    break;
-                }
+            int i = 0;
+            for (Entry<Float, KernelInstance> e : curves.entrySet()) {
+                if (i++ < previewImageCurveCount_) continue;
+
                 MultiCurve shape = new TransformedMultiCurve(e.getValue().shape_,
                         new float[] { 0, 0},  blur, 1 / blur);
-                MultiCurveRenderer.renderMultiCurve(previewImage_, shape, new Scalar(0));
+                shape.renderToMat(previewImage_, new Scalar(0));
             }
+            previewImageCurveCount_ = curves.size();
         }
     }
 
@@ -331,7 +343,7 @@ public class Scribbler implements Runnable {
             KernelInstance instance = kernelFactory_.createKernelInstance(context);
 
             mask.setTo(new Scalar(0));
-            MultiCurveRenderer.renderMultiCurve(mask, instance.shape_, new Scalar(GRAY_RESOLUTION));
+            instance.shape_.renderToMat(mask, new Scalar(GRAY_RESOLUTION));
 
             double score = Core.mean(image, mask).val[0];
             if (score > bestScore) {

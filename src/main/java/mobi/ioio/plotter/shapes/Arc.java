@@ -6,7 +6,7 @@ import java.util.List;
 
 import mobi.ioio.plotter.Curve;
 
-public class Arc implements Curve {
+public class Arc extends Curve {
     final float centerx_;
     final float centery_;
     final float radius_;

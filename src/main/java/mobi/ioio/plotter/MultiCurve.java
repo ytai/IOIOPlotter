@@ -1,5 +1,8 @@
 package mobi.ioio.plotter;
 
+import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
+
 import java.io.Serializable;
 import java.util.Iterator;
 
@@ -30,5 +33,12 @@ public abstract class MultiCurve implements Serializable {
             hasBounds_ = true;
         }
         return bounds_ != null ? bounds_.clone() : null;
+    }
+
+    public void renderToMat(Mat mat, Scalar color) {
+        Iterator<Curve> iter = iterator();
+        while (iter.hasNext()) {
+            iter.next().renderToMat(mat, color);
+        }
     }
 }

@@ -2,7 +2,7 @@ package mobi.ioio.plotter.shapes;
 
 import mobi.ioio.plotter.Curve;
 
-public class Bezier implements Curve {
+public class Bezier extends Curve {
     final float x1_, y1_, x2_, y2_, x3_, y3_;
     final double approxLength_;
 

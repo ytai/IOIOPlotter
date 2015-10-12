@@ -7,7 +7,7 @@ import mobi.ioio.plotter.Curve;
 
 import org.opencv.core.Point;
 
-public class PointsCurve implements Curve, Serializable {
+public class PointsCurve extends Curve {
 	private static final long serialVersionUID = -7137155928229534506L;
 	private double totalLength_;
 	private Point[] points_;

@@ -1,8 +1,13 @@
 package mobi.ioio.plotter.shapes;
 
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+
 import mobi.ioio.plotter.Curve;
 
-public class Line implements Curve {
+public class Line extends Curve {
 	private final double totalTime_;
 	private final float from_[];
 	private final float to_[];
@@ -43,6 +48,11 @@ public class Line implements Curve {
                 Math.max(from_[0], to_[0]),
                 Math.max(from_[1], to_[1])
         };
+    }
+
+    @Override
+    public void renderToMat(Mat mat, Scalar color) {
+        Core.line(mat, new Point(from_[0], from_[1]), new Point(to_[0], to_[1]), color);
     }
 
     private static double limit(double val, double min, double max) {
