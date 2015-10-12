@@ -55,7 +55,8 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 	TextView selectImageTextView_;
 	TextView blurTextView_;
 	TextView thresholdTextView_;
-	TextView statusTextView_;
+    TextView statusTextView_;
+    TextView lengthTextView_;
 	SeekBar blurSeekBar_;
 	SeekBar thresholdSeekBar_;
 	CheckBox previewCheckbox_;
@@ -66,7 +67,6 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 	private Scribbler scribbler_;
 
 	private float darkness_ = 1;
-	private int numLines_ = 0;
 	private static final int GET_IMAGE_REQUEST_CODE = 100;
 	private boolean donePressed_ = false;
 
@@ -107,11 +107,12 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
                 scribbler_ = new Scribbler(this, data.getData(), getBlur(), getThreshold(),
                         getMode(), new Scribbler.Listener() {
                     @Override
-                    public void previewFrame(final Bitmap frame) {
+                    public void previewFrame(final Bitmap frame, final double totalTime) {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 imageView_.setImageBitmap(frame);
+                                lengthTextView_.setText(String.format("%.1fm", totalTime / 1000));
                             }
                         });
                     }
@@ -127,7 +128,7 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
                     }
 
                     @Override
-                    public void result(final MultiCurve curve, final Bitmap thumbnail) {
+                    public void result(final MultiCurve curve, final Bitmap thumbnail, double totalTime) {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
@@ -261,7 +262,9 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 			if (seekBar == thresholdSeekBar_) {
 				thresholdTextView_.setText(String.format("%.0f%%", getThreshold() * 100));
 				if (scribbler_ != null) {
-					updateProgress(darkness_, numLines_);
+                    if (doneButton_.isEnabled() && darkness_ > getThreshold()) {
+                        doneButton_.setEnabled(false);
+                    }
 					scribbler_.setThreshold(getThreshold());
 				}
 			} else if (seekBar == blurSeekBar_) {
@@ -287,8 +290,7 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 
 	private void updateProgress(float darkness, int numLines) {
 		darkness_ = darkness;
-		numLines_ = numLines;
-		doneButton_.setEnabled(!donePressed_ && darkness < getThreshold());
+		doneButton_.setEnabled(!donePressed_ && darkness <= getThreshold());
 		statusTextView_.setText(String.format("%.0f%% (%d)", darkness * 100, numLines));
 	}
 
@@ -312,6 +314,7 @@ public class ScribblerActivity extends Activity implements OnClickListener, Adap
 		blurTextView_ = (TextView) findViewById(R.id.blurText);
 		thresholdTextView_ = (TextView) findViewById(R.id.thresholdText);
 		statusTextView_ = (TextView) findViewById(R.id.status);
+        lengthTextView_ = (TextView) findViewById(R.id.length);
 
 		previewCheckbox_ = (CheckBox) findViewById(R.id.preview);
 		previewCheckbox_.setOnCheckedChangeListener(updateListener_);

@@ -8,6 +8,7 @@ import mobi.ioio.plotter.MultiCurve;
 
 public class ConcatMultiCurve extends MultiCurve {
     private final Collection<MultiCurve> curves_;
+    private double totalTime_ = Double.NaN;
 
     private class Iter implements Iterator<Curve> {
         Iterator<MultiCurve> parent_ = curves_.iterator();
@@ -52,5 +53,16 @@ public class ConcatMultiCurve extends MultiCurve {
     @Override
     public Iterator<Curve> iterator() {
         return new Iter();
+    }
+
+    @Override
+    public double totalTime() {
+        if (Double.isNaN(totalTime_)) {
+            totalTime_ = 0;
+            for (MultiCurve c : curves_) {
+                totalTime_ += c.totalTime();
+            }
+        }
+        return totalTime_;
     }
 }

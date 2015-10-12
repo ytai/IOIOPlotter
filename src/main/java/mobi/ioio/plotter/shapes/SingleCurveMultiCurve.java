@@ -42,4 +42,9 @@ public class SingleCurveMultiCurve extends MultiCurve implements Serializable {
 	public float[] getBounds() {
         return curve_.getBounds();
 	}
+
+    @Override
+    public double totalTime() {
+        return curve_.totalTime();
+    }
 }

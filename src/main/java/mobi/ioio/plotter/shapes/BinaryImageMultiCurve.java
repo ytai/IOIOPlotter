@@ -15,6 +15,7 @@ public class BinaryImageMultiCurve extends MultiCurve implements Serializable {
 	private static final long serialVersionUID = -3015846915211337975L;
     private final BinaryImage image_;
 	private final int minCurvePixels_;
+    private double totalTime_ = Double.NaN;
 
     private class Iter implements Iterator<Curve> {
         private final BinaryImageTracer tracer_;
@@ -130,5 +131,17 @@ public class BinaryImageMultiCurve extends MultiCurve implements Serializable {
     @Override
     public Iterator<Curve> iterator() {
         return new Iter();
+    }
+
+    @Override
+    public double totalTime() {
+        if (Double.isNaN(totalTime_)) {
+            totalTime_ = 0;
+            Iterator<Curve> iter = iterator();
+            while (iter.hasNext()) {
+                totalTime_ += iter.next().totalTime();
+            }
+        }
+        return totalTime_;
     }
 }

@@ -41,4 +41,6 @@ public abstract class MultiCurve implements Serializable {
             iter.next().renderToMat(mat, color);
         }
     }
+
+    public abstract double totalTime();
 }

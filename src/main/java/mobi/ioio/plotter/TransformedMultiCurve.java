@@ -42,4 +42,9 @@ public class TransformedMultiCurve extends MultiCurve {
     public Iterator<Curve> iterator() {
         return new Iter();
     }
+
+    @Override
+    public double totalTime() {
+        return mutliCurve_.totalTime() * timeScale_;
+    }
 }

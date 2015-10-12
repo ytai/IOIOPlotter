@@ -34,11 +34,23 @@ public class Scribbler implements Runnable {
     }
 
     public interface Listener {
-        void previewFrame(Bitmap frame);
+        void previewFrame(Bitmap frame, double totalTime);
 
         void progress(float darkness, int numLines);
 
-        void result(MultiCurve curve, Bitmap thumbnail);
+        void result(MultiCurve curve, Bitmap thumbnail, double totalTime);
+    }
+
+    private static class CurveMapEntry {
+        public final MultiCurve shape;
+        public final Object context;
+        public final double cumulativeTime;
+
+        private CurveMapEntry(MultiCurve shape, Object context, double cumulativeTime) {
+            this.shape = shape;
+            this.context = context;
+            this.cumulativeTime = cumulativeTime;
+        }
     }
 
     private final Thread thread_;
@@ -67,7 +79,7 @@ public class Scribbler implements Runnable {
     private float currentThreshold_;
     private Mode currentMode_;
     private KernelFactory currentKernelFactory_;
-    private SortedMap<Float, KernelInstance> curves_ = new TreeMap<Float, KernelInstance>();
+    private SortedMap<Float, CurveMapEntry> curves_ = new TreeMap<Float, CurveMapEntry>();
     private Bitmap previewBitmap_;
     boolean stopped_ = false;
 
@@ -168,8 +180,7 @@ public class Scribbler implements Runnable {
                 needMoreInstances = invalidateAll || curves_.isEmpty() || -curves_.lastKey() > threshold_
                         && curves_.size() < MAX_INSTANCES;
                 previewInvalid = invalidateAll || currentMode_ != mode_;
-                previewNeedsUpdate = previewInvalid || needMoreInstances && mode_ == Mode.Vector
-                        || currentThreshold_ != threshold_;
+                previewNeedsUpdate = previewInvalid || needMoreInstances || currentThreshold_ != threshold_;
                 if (needMoreInstances || invalidateAll || previewInvalid ||  previewNeedsUpdate
                         || requestResult_) {
                     break;
@@ -215,16 +226,17 @@ public class Scribbler implements Runnable {
         Utils.matToBitmap(thumbnail, bmp);
 
         // Concatenate multi-curves.
+        double totalTime = 0;
         ArrayList<MultiCurve> curves = new ArrayList<MultiCurve>(curves_.size());
-        for (KernelInstance kernel : curves_.subMap(curves_.firstKey(),
-                -threshold + Float.MIN_VALUE).values()) {
-            curves.add(kernel.shape_);
+        for (CurveMapEntry entry : curves_.headMap(-threshold + Float.MIN_VALUE).values()) {
+            curves.add(entry.shape);
+            totalTime = entry.cumulativeTime;
         }
         MultiCurve concat = new ConcatMultiCurve(curves);
 
         synchronized (this) {
             if (listener_ != null) {
-                listener_.result(concat, bmp);
+                listener_.result(concat, bmp, totalTime);
             }
             requestResult_ = false;
         }
@@ -248,10 +260,12 @@ public class Scribbler implements Runnable {
     }
 
     private void addKernelInstance(float blur) {
-        Object context = curves_.isEmpty() ? null : curves_.get(curves_.lastKey()).context_;
+        Object context = curves_.isEmpty() ? null : curves_.get(curves_.lastKey()).context;
         KernelInstance kernelInstance = nextKernalInstance(imageResidue_, NUM_ATTEMPTS, context);
         float residualDarkness = darkness(imageResidue_) / blur;
-        curves_.put(-residualDarkness, kernelInstance);
+        double cumulativeTime = (curves_.isEmpty() ? 0 : curves_.get(curves_.lastKey()).cumulativeTime)
+                + kernelInstance.shape_.totalTime();
+        curves_.put(-residualDarkness, new CurveMapEntry(kernelInstance.shape_, kernelInstance.context_, cumulativeTime));
         System.out.printf("Points: %d, darkness: %f\n", curves_.size(), residualDarkness);
 
         synchronized (this) {
@@ -262,18 +276,21 @@ public class Scribbler implements Runnable {
     }
 
     private void generatePreview(float blur, float threshold, Mode mode) {
-        renderPreview(blur, threshold, mode);
+        double totalTime = renderPreview(blur, threshold, mode);
         Utils.matToBitmap(previewImage_, previewBitmap_);
         final Bitmap bmp = previewBitmap_;
 
         synchronized (this) {
             if (listener_ != null) {
-                listener_.previewFrame(bmp);
+                listener_.previewFrame(bmp, totalTime);
             }
         }
     }
 
-    private void renderPreview(float blur, float threshold, Mode mode) {
+    private double renderPreview(float blur, float threshold, Mode mode) {
+        // These are the relevant curves.
+        SortedMap<Float, CurveMapEntry> curves = curves_.headMap(-threshold + Float.MIN_VALUE);
+
         if (mode == Mode.Raster) {
             // Gaussian blur
             if (blur > 0) {
@@ -285,9 +302,6 @@ public class Scribbler implements Runnable {
             // Simulate threshold
             Core.add(previewImage_, new Scalar(threshold * 255), previewImage_);
         } else {
-            // Find how many curves we need to render.
-            SortedMap<Float, KernelInstance> curves = curves_.headMap(-threshold + Float.MIN_VALUE);
-
             // See if we can use a cached preview.
             if (curves.size() < previewImageCurveCount_) {
                 previewImage_.setTo(new Scalar(255));
@@ -296,15 +310,18 @@ public class Scribbler implements Runnable {
 
             final Scalar black = new Scalar(0);
             int i = 0;
-            for (Entry<Float, KernelInstance> e : curves.entrySet()) {
+            for (Entry<Float, CurveMapEntry> e : curves.entrySet()) {
                 if (i++ < previewImageCurveCount_) continue;
 
-                MultiCurve shape = new TransformedMultiCurve(e.getValue().shape_,
+                MultiCurve shape = new TransformedMultiCurve(e.getValue().shape,
                         new float[] { 0, 0},  blur, 1 / blur);
                 shape.renderToMat(previewImage_, new Scalar(0));
             }
             previewImageCurveCount_ = curves.size();
         }
+
+        if (curves.isEmpty()) return 0;
+        return curves.get(curves.lastKey()).cumulativeTime;
     }
 
     private static Point scalePoint(Point p, float scale) {
