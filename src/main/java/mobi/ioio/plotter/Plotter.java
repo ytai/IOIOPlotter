@@ -92,6 +92,7 @@ public class Plotter {
 
 	private boolean nextCurve() {
 		final float[] currentPos = new float[2];
+        float[] nextPos = null;
 		getPos(currentPos);
 
 		switch (state_) {
@@ -132,8 +133,19 @@ public class Plotter {
 		case CURVE:
 			// Just finished a curve, raise the pen.
 			currentCurve_ = (curveIter_ != null && curveIter_.hasNext()) ? curveIter_.next() : null;
-			curvePlotter_.setCurve(new Delay(currentPos, PEN_DELAY_SEC));
-			state_ = State.PEN_UP_DELAY;
+            if (currentCurve_ != null) {
+                nextPos = new float[2];
+                currentCurve_.getPosTime(0, nextPos);
+            }
+            if (nextPos != null && Math.hypot(currentPos[0] - nextPos[0], currentPos[1] - nextPos[1]) < 0.5) {
+                // If the next curve starts very close to where the current one ends, don't insert
+                // a gap.
+                curvePlotter_.setCurve(currentCurve_);
+            } else {
+                // Otherwise, raise the pen.
+                curvePlotter_.setCurve(new Delay(currentPos, PEN_DELAY_SEC));
+                state_ = State.PEN_UP_DELAY;
+            }
 			break;
 		}
 		return true;
