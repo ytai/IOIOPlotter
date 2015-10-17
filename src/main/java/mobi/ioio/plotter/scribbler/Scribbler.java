@@ -62,7 +62,7 @@ public class Scribbler implements Runnable {
     private Listener listener_;
     private KernelFactory kernelFactory_;
     private boolean requestResult_ = false;
-    private boolean requestReset_ = false;
+    private boolean requestReset_ = true;
 
     // Internals
     private static final float LINE_WIDTH_TO_IMAGE_WIDTH = 450;
@@ -75,10 +75,10 @@ public class Scribbler implements Runnable {
     private Mat imageResidue_;
     private Mat previewImage_;
     private int previewImageCurveCount_;
-    private float currentBlur_;
-    private float currentThreshold_;
-    private Mode currentMode_;
-    private KernelFactory currentKernelFactory_;
+    private float targetBlur_;
+    private float targetThreshold_;
+    private Mode targetMode_;
+    private KernelFactory targetKernelFactory_;
     private SortedMap<Float, CurveMapEntry> curves_ = new TreeMap<Float, CurveMapEntry>();
     private Bitmap previewBitmap_;
     boolean stopped_ = false;
@@ -87,11 +87,11 @@ public class Scribbler implements Runnable {
                      Mode initialMode, Listener listener, KernelFactory initialFactory) {
         context_ = context;
         uri_ = uri;
-        blur_ = initialBlur;
-        threshold_ = initialThershold;
-        mode_ = initialMode;
         listener_ = listener;
-        kernelFactory_ = initialFactory;
+        targetBlur_ = initialBlur;
+        targetThreshold_ = initialThershold;
+        targetMode_ = initialMode;
+        targetKernelFactory_ = initialFactory;
 
         thread_ = new Thread(this);
         thread_.start();
@@ -104,17 +104,17 @@ public class Scribbler implements Runnable {
     }
 
     public synchronized void setBlur(float blur) {
-        blur_ = blur;
+        targetBlur_ = blur;
         notify();
     }
 
     public synchronized void setThreshold(float threshold) {
-        threshold_ = threshold;
+        targetThreshold_ = threshold;
         notify();
     }
 
     public synchronized void setMode(Mode mode) {
-        mode_ = mode;
+        targetMode_ = mode;
         notify();
     }
 
@@ -129,7 +129,7 @@ public class Scribbler implements Runnable {
     }
 
     public synchronized void setKernelFactory(KernelFactory factory) {
-        kernelFactory_ = factory;
+        targetKernelFactory_ = factory;
         notify();
     }
 
@@ -169,18 +169,14 @@ public class Scribbler implements Runnable {
         boolean previewNeedsUpdate;
         boolean invalidateAll;
         boolean needMoreInstances;
-        float blur;
-        float threshold;
-        KernelFactory factory;
-        Mode mode;
         synchronized (this) {
             while (true) {
-                invalidateAll = imageResidue_ == null || currentBlur_ != blur_
-                        || currentKernelFactory_ != kernelFactory_ || requestReset_;
+                invalidateAll = imageResidue_ == null || targetBlur_ != blur_
+                        || targetKernelFactory_ != kernelFactory_ || requestReset_;
                 needMoreInstances = invalidateAll || curves_.isEmpty() || -curves_.lastKey() > threshold_
                         && curves_.size() < MAX_INSTANCES;
-                previewInvalid = invalidateAll || currentMode_ != mode_;
-                previewNeedsUpdate = previewInvalid || needMoreInstances || currentThreshold_ != threshold_;
+                previewInvalid = invalidateAll || targetMode_ != mode_;
+                previewNeedsUpdate = previewInvalid || needMoreInstances || targetThreshold_ != threshold_;
                 if (needMoreInstances || invalidateAll || previewInvalid ||  previewNeedsUpdate
                         || requestResult_) {
                     break;
@@ -188,37 +184,33 @@ public class Scribbler implements Runnable {
                 wait();
             }
             // Copy state.
-            blur = blur_;
-            threshold = threshold_;
-            mode = mode_;
-            factory = kernelFactory_;
+            blur_ = targetBlur_;
+            threshold_ = targetThreshold_;
+            mode_ = targetMode_;
+            kernelFactory_ = targetKernelFactory_;
         }
         if (invalidateAll) {
-            clear(blur);
+            clear();
             requestReset_ = false;
         }
         if (needMoreInstances) {
-            addKernelInstance(blur);
+            addKernelInstance();
         }
         if (previewInvalid) {
             previewImage_.setTo(new Scalar(255));
             previewImageCurveCount_ = 0;
         }
         if (previewNeedsUpdate) {
-            generatePreview(blur, threshold, mode);
+            generatePreview();
         }
         if (requestResult_ && !needMoreInstances) {
-            sendResult(blur, threshold);
+            sendResult();
         }
-        currentMode_ = mode;
-        currentBlur_ = blur;
-        currentThreshold_ = threshold;
-        currentKernelFactory_ = factory;
     }
 
-    private void sendResult(float blur, float threshold) {
+    private void sendResult() {
         // Generate thumbnail.
-        renderPreview(blur, threshold, Mode.Vector);
+        renderPreview(blur_, threshold_, Mode.Vector);
         Mat thumbnail = new Mat(previewImage_.rows(), previewImage_.cols() * 2, CvType.CV_8U);
         imageScaledToPreview_.copyTo(thumbnail.colRange(0, previewImage_.cols()));
         previewImage_.copyTo(thumbnail.colRange(previewImage_.cols(), previewImage_.cols() * 2));
@@ -228,7 +220,7 @@ public class Scribbler implements Runnable {
         // Concatenate multi-curves.
         double totalTime = 0;
         ArrayList<MultiCurve> curves = new ArrayList<MultiCurve>(curves_.size());
-        for (CurveMapEntry entry : curves_.headMap(-threshold + Float.MIN_VALUE).values()) {
+        for (CurveMapEntry entry : curves_.headMap(-threshold_ + Float.MIN_VALUE).values()) {
             curves.add(entry.shape);
             totalTime = entry.cumulativeTime;
         }
@@ -242,9 +234,9 @@ public class Scribbler implements Runnable {
         }
     }
 
-    private void clear(float blur) {
+    private void clear() {
         // Resize to native resolution divided by blur factor.
-        float scale = LINE_WIDTH_TO_IMAGE_WIDTH / blur / srcImage_.cols();
+        float scale = LINE_WIDTH_TO_IMAGE_WIDTH / blur_ / srcImage_.cols();
         Imgproc.resize(srcImage_, imageResidue_, new Size(), scale, scale, Imgproc.INTER_AREA);
         // Negative.
         final Mat scalar = new Mat(1, 1, CvType.CV_64FC1).setTo(new Scalar(255));
@@ -252,17 +244,17 @@ public class Scribbler implements Runnable {
         // Convert to S16.
         imageResidue_.convertTo(imageResidue_, CvType.CV_16SC1);
         // Full scale is now blur * GRAY_RESOLUTION.
-        Core.multiply(imageResidue_, new Scalar(blur * GRAY_RESOLUTION / 255), imageResidue_);
+        Core.multiply(imageResidue_, new Scalar(blur_ * GRAY_RESOLUTION / 255), imageResidue_);
         // Clear map.
         curves_.clear();
 
         kernelFactory_.setDimensions(imageResidue_.width(), imageResidue_.height());
     }
 
-    private void addKernelInstance(float blur) {
+    private void addKernelInstance() {
         Object context = curves_.isEmpty() ? null : curves_.get(curves_.lastKey()).context;
         KernelInstance kernelInstance = nextKernalInstance(imageResidue_, NUM_ATTEMPTS, context);
-        float residualDarkness = darkness(imageResidue_) / blur;
+        float residualDarkness = darkness(imageResidue_) / blur_;
         double cumulativeTime = (curves_.isEmpty() ? 0 : curves_.get(curves_.lastKey()).cumulativeTime)
                 + kernelInstance.shape_.totalTime();
         curves_.put(-residualDarkness, new CurveMapEntry(kernelInstance.shape_, kernelInstance.context_, cumulativeTime));
@@ -275,8 +267,8 @@ public class Scribbler implements Runnable {
         }
     }
 
-    private void generatePreview(float blur, float threshold, Mode mode) {
-        double totalTime = renderPreview(blur, threshold, mode);
+    private void generatePreview() {
+        double totalTime = renderPreview(blur_, threshold_, mode_);
         Utils.matToBitmap(previewImage_, previewBitmap_);
         final Bitmap bmp = previewBitmap_;
 
