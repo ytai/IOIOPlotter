@@ -68,6 +68,13 @@ public class PlotterMainActivity extends Activity implements OnClickListener,
 	private Uri multiCurveUri_;
 	private Uri thumbnailUri_;
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if ((intent.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0) {
+            startService(new Intent(this, PlotterService.class));
+        }
+    }
 
     @Override
 	protected void onStart() {
