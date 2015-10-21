@@ -62,14 +62,14 @@ public class PlotterMainActivity extends Activity implements OnClickListener,
 	private Button homeButton_;
 	private Button exitButton_;
 	private Button stopButton_;
+    private IOIOBinder binder_;
 	private Looper looper_;
 	private JoystickView joystick_;
 	private Uri multiCurveUri_;
 	private Uri thumbnailUri_;
 
-	private boolean bound_ = false;
 
-	@Override
+    @Override
 	protected void onStart() {
 		super.onStart();
 		Intent intent = new Intent(this, PlotterService.class);
@@ -82,16 +82,22 @@ public class PlotterMainActivity extends Activity implements OnClickListener,
 	protected void onReceive(Intent intent) {
 		if (intent != null) {
 			serviceState_ = PlotterService.State.values()[intent.getIntExtra(
-					PlotterService.EXTRA_STATE, 0)];
+                    PlotterService.EXTRA_STATE, 0)];
+            if (binder_ != null) {
+                looper_ = binder_.getLooper();
+            } else {
+                looper_ = null;
+            }
 		} else {
 			serviceState_ = PlotterService.State.DISCONNECTED;
+            looper_ = null;
 		}
 		updateGui();
 	}
 
 	@Override
 	protected void onStop() {
-		if (bound_) {
+		if (binder_ != null) {
 			unbindService(this);
 		}
 		unregisterReceiver(receiver_);
@@ -100,9 +106,9 @@ public class PlotterMainActivity extends Activity implements OnClickListener,
 
 	@Override
 	public void onServiceConnected(ComponentName name, IBinder binder) {
+        binder_ = (IOIOBinder) binder;
 		looper_ = ((IOIOBinder) binder).getLooper();
-		bound_ = true;
-		Uri[] extra = (Uri[]) looper_.getExtra();
+		Uri[] extra = looper_ != null ? (Uri[]) looper_.getExtra() : null;
 		if (extra != null && multiCurveUri_ == null) {
 			multiCurveUri_ = extra[0];
 			thumbnailUri_ = extra[1];
@@ -112,6 +118,7 @@ public class PlotterMainActivity extends Activity implements OnClickListener,
 
 	@Override
 	public void onServiceDisconnected(ComponentName name) {
+        binder_ = null;
 		looper_ = null;
 		updateGui();
 	}
@@ -280,24 +287,25 @@ public class PlotterMainActivity extends Activity implements OnClickListener,
 
 	private void updateGui() {
 		final boolean hasPath = multiCurveUri_ != null;
+        final boolean bound = binder_ != null;
 
-		plotButton_.setEnabled(bound_ && hasPath
+		plotButton_.setEnabled(bound && hasPath
 				&& serviceState_ != PlotterService.State.DISCONNECTED);
-		plotButton_.setChecked(bound_ && hasPath && serviceState_ == PlotterService.State.PLOTTING);
+		plotButton_.setChecked(bound && hasPath && serviceState_ == PlotterService.State.PLOTTING);
 
-		homeButton_.setEnabled(bound_ && serviceState_ == PlotterService.State.STOPPED);
-		exitButton_.setEnabled(bound_);
-		stopButton_.setEnabled(bound_ && hasPath
+		homeButton_.setEnabled(bound && serviceState_ == PlotterService.State.STOPPED);
+		exitButton_.setEnabled(bound);
+		stopButton_.setEnabled(bound && hasPath
 				&& serviceState_ != PlotterService.State.DISCONNECTED);
-		joystick_.setEnabled(bound_ && serviceState_ == PlotterService.State.STOPPED);
+		joystick_.setEnabled(bound && serviceState_ == PlotterService.State.STOPPED);
 
 		pathImageView_.setVisibility(hasPath ? View.VISIBLE : View.GONE);
 		pathImageView_.setImageURI(thumbnailUri_);
 		selectPathView_.setVisibility(hasPath ? View.GONE : View.VISIBLE);
 
-		pathImageView_.setEnabled(!bound_ || serviceState_ == PlotterService.State.DISCONNECTED
+		pathImageView_.setEnabled(!bound || serviceState_ == PlotterService.State.DISCONNECTED
 				|| serviceState_ == State.STOPPED);
-		selectPathView_.setEnabled(!bound_ || serviceState_ == PlotterService.State.DISCONNECTED
+		selectPathView_.setEnabled(!bound || serviceState_ == PlotterService.State.DISCONNECTED
 				|| serviceState_ == State.STOPPED);
 	}
 

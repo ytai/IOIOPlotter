@@ -30,6 +30,7 @@ import android.widget.Toast;
 public class PlotterService extends IOIOService {
 	public enum State {
 		DISCONNECTED,
+        INCOMPATIBLE,
 		STOPPED,
 		PAUSED,
 		PLOTTING
@@ -50,8 +51,7 @@ public class PlotterService extends IOIOService {
 
 	@Override
 	protected IOIOLooper createIOIOLooper() {
-		looper_ = new Looper();
-		return looper_;
+		return new Looper();
 	}
 
 	@Override
@@ -116,10 +116,11 @@ public class PlotterService extends IOIOService {
 			home();
 			setCurrentState(State.DISCONNECTED);
 		}
-	
+
 		@Override
 		protected void setup() throws ConnectionLostException, InterruptedException {
-			toast("IOIO Connected");
+            looper_ = this;
+            toast("IOIO Connected");
 			sequencer_ = ioio_.openSequencer(config_);
 			sequencer_.start();
 			servoCue_.pulseWidth = 2350;
@@ -225,13 +226,13 @@ public class PlotterService extends IOIOService {
 			Intent intent = new Intent(ACTION_STATE_CHANGE);
 			intent.putExtra(EXTRA_STATE, state.ordinal());
 			sendStickyBroadcast(intent);
-			
+
 			Notification notification = new Notification(R.drawable.ic_launcher, "IOIO Plotter",
 			        System.currentTimeMillis());
 			Intent notificationIntent = new Intent(PlotterService.this, PlotterMainActivity.class);
 			PendingIntent pendingIntent = PendingIntent.getActivity(PlotterService.this, 0, notificationIntent, 0);
 			notification.setLatestEventInfo(PlotterService.this, "IOIO Plotter", state.toString(), pendingIntent);
-			
+
 			startForeground(PLOTTER_NOTIFICATION, notification);
 		}
 
@@ -258,6 +259,7 @@ public class PlotterService extends IOIOService {
 	
 		@Override
 		public void disconnected() {
+            looper_ = null;
 			toast("IOIO Disconnected");
 			setCurrentState(State.DISCONNECTED);
 		}
@@ -278,8 +280,8 @@ public class PlotterService extends IOIOService {
 
 		@Override
 		public void incompatible() {
-			// TODO Auto-generated method stub
-			
+            toast("IOIO Firmware incompatible");
+            setCurrentState(State.INCOMPATIBLE);
 		}
 	}
 }
