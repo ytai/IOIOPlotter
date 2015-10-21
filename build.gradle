@@ -17,6 +17,7 @@ android {
 
 dependencies {
   compile 'com.github.ytai.ioio:IOIOLibAndroid:5.05'
+  compile 'com.github.ytai.ioio:IOIOLibAndroidDevice:5.05'
   compile 'com.github.ytai.ioio:IOIOLibAndroidAccessory:5.05'
   compile project(':libraries:opencv')
 }
